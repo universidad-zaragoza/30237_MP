@@ -2,7 +2,7 @@
  *  The output includes several columns:
  *	Loop:		name of the loop
  *	Time(ns): 	time in nanoseconds to run the loop
- *	ps/it: 	    picoseconds per loop iteration
+ *	ps/it: 	    picoseconds per C loop iteration
  *	Checksum:	checksum calculated when the test has run
  */
 
@@ -90,7 +90,7 @@ void results(const double wall_time, const char *loop)
             wall_time/(1e-12*NTIMES*LEN) /* ps/el */);
 }
 
-/* axpb functions */
+/* scale and shift functions */
 __attribute__ ((noinline))
 int
 scale_shift()
@@ -147,8 +147,8 @@ ss_intr_SSE()
         {
             vX = _mm_load_pd(&x[i]);
             vX = _mm_mul_pd(valpha, vX);
-            vA = _mm_add_pd(vX, vbeta);
-            _mm_store_pd(&x[i], vA);
+            vX = _mm_add_pd(vX, vbeta);
+            _mm_store_pd(&x[i], vX);
         }
         dummy(x, alpha, beta);
     }
