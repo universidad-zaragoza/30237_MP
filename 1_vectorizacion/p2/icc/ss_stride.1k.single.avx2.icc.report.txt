@@ -1,0 +1,79 @@
+Intel(R) Advisor can now assist with vectorization and show optimization
+  report messages with your source code.
+See "https://software.intel.com/en-us/intel-advisor-xe" for details.
+
+
+Begin optimization report for: main()
+
+    Report from: Vector optimizations [vec]
+
+
+LOOP BEGIN at ../ss_stride.c(114,3) inlined into ../ss_stride.c(179,3)
+   remark #15344: loop was not vectorized: vector dependence prevents vectorization. First dependence is shown below. Use level 5 report for details
+   remark #15346: vector dependence: assumed OUTPUT dependence between x[i] (121:7) and x (123:5)
+
+   LOOP BEGIN at ../ss_stride.c(119,5) inlined into ../ss_stride.c(179,3)
+      remark #15340: pragma supersedes previous setting   [ ../ss_stride.c(119,23) ]
+      remark #15319: loop was not vectorized: novector directive used
+   LOOP END
+LOOP END
+
+LOOP BEGIN at ../ss_stride.c(137,3) inlined into ../ss_stride.c(180,3)
+   remark #15542: loop was not vectorized: inner loop was already vectorized
+
+   LOOP BEGIN at ../ss_stride.c(139,5) inlined into ../ss_stride.c(180,3)
+      remark #15300: LOOP WAS VECTORIZED
+   LOOP END
+LOOP END
+===========================================================================
+
+Begin optimization report for: check(float *)
+
+    Report from: Vector optimizations [vec]
+
+
+LOOP BEGIN at ../ss_stride.c(76,3)
+   remark #15340: pragma supersedes previous setting   [ ../ss_stride.c(76,21) ]
+   remark #15319: loop was not vectorized: novector directive used
+LOOP END
+===========================================================================
+
+Begin optimization report for: ss_stride_esc()
+
+    Report from: Vector optimizations [vec]
+
+
+LOOP BEGIN at ../ss_stride.c(114,3)
+   remark #15344: loop was not vectorized: vector dependence prevents vectorization. First dependence is shown below. Use level 5 report for details
+   remark #15346: vector dependence: assumed OUTPUT dependence between x[i] (121:7) and x (123:5)
+
+   LOOP BEGIN at ../ss_stride.c(119,5)
+      remark #15340: pragma supersedes previous setting   [ ../ss_stride.c(119,23) ]
+      remark #15319: loop was not vectorized: novector directive used
+   LOOP END
+LOOP END
+===========================================================================
+
+Begin optimization report for: ss_stride_vec()
+
+    Report from: Vector optimizations [vec]
+
+
+LOOP BEGIN at ../ss_stride.c(137,3)
+   remark #15542: loop was not vectorized: inner loop was already vectorized
+
+   LOOP BEGIN at ../ss_stride.c(139,5)
+      remark #15300: LOOP WAS VECTORIZED
+   LOOP END
+LOOP END
+===========================================================================
+
+Begin optimization report for: init()
+
+    Report from: Vector optimizations [vec]
+
+
+LOOP BEGIN at ../ss_stride.c(88,3)
+   remark #15300: LOOP WAS VECTORIZED
+LOOP END
+===========================================================================
