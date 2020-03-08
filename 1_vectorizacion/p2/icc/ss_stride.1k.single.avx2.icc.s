@@ -554,7 +554,7 @@ get_wall_time:
 ..LNget_wall_time.141:
 .LNget_wall_time:
 	.data
-	.file   2 "/usr/include/x86_64-linux-gnu/bits/time.h"
+	.file   2 "/usr/include/x86_64-linux-gnu/bits/types/struct_timeval.h"
 	.file   3 "/usr/include/x86_64-linux-gnu/bits/types.h"
 # -- End  get_wall_time
 	.text
@@ -691,7 +691,7 @@ results:
 ..LN165:
 	.loc    1  98  prologue_end  is_stmt 1
 
-###     printf("%18s  %5.1f    %5.1f     ",
+###     printf("%18s  %6.1f    %6.1f     ",
 
         vdivsd    .L_2il0floatpacket.6(%rip), %xmm0, %xmm2      #98.5
 ..LN166:
@@ -1391,10 +1391,10 @@ x:
 	.align 4
 .L_2__STRING.1:
 	.long	1933062437
-	.long	891625504
+	.long	908402720
 	.long	543568174
 	.long	622862368
-	.long	1714499125
+	.long	1714499126
 	.long	538976288
 	.word	32
 	.type	.L_2__STRING.1,@object
@@ -1710,7 +1710,7 @@ x:
 //	DW_TAG_structure_type:
 	.byte 0x0a
 //	DW_AT_decl_line:
-	.byte 0x1e
+	.byte 0x08
 //	DW_AT_decl_file:
 	.byte 0x02
 //	DW_AT_byte_size:
@@ -1720,7 +1720,7 @@ x:
 //	DW_TAG_member:
 	.byte 0x0b
 //	DW_AT_decl_line:
-	.byte 0x20
+	.byte 0x0a
 //	DW_AT_decl_file:
 	.byte 0x02
 //	DW_AT_data_member_location:
@@ -1733,7 +1733,7 @@ x:
 //	DW_TAG_member:
 	.byte 0x0b
 //	DW_AT_decl_line:
-	.byte 0x21
+	.byte 0x0b
 //	DW_AT_decl_file:
 	.byte 0x02
 //	DW_AT_data_member_location:
@@ -1747,7 +1747,7 @@ x:
 //	DW_TAG_typedef:
 	.byte 0x0c
 //	DW_AT_decl_line:
-	.byte 0x8b
+	.byte 0x94
 //	DW_AT_decl_file:
 	.byte 0x03
 //	DW_AT_name:
@@ -1765,7 +1765,7 @@ x:
 //	DW_TAG_typedef:
 	.byte 0x0c
 //	DW_AT_decl_line:
-	.byte 0x8d
+	.byte 0x96
 //	DW_AT_decl_file:
 	.byte 0x03
 //	DW_AT_name:
