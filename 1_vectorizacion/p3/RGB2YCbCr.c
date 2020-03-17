@@ -567,9 +567,9 @@ RGB2YCbCr_block(image_t * restrict image_in, image_t * restrict image_out)
             #pragma GCC ivdep
             for (int j = 0; j < BLOCK; j++)
             {
-                // Ypixels[j]  = f(Rpixels[j], Gpixels[j], Bpixels[j]);
-                // Cbpixels[j] = f(Rpixels[j], Gpixels[j], Bpixels[j]);
-                // Crpixels[j] = f(Rpixels[j], Gpixels[j], Bpixels[j]);
+                // Ypixels[j]  = (unsigned char) (0.5f + ...);
+                // Cbpixels[j] = (unsigned char) (0.5f + ...);
+                // Crpixels[j] = (unsigned char) (0.5f + ...);
             }
             /* transformación SoA -> AoS */
             #pragma GCC ivdep
