@@ -281,7 +281,7 @@ read_PGM(char *filename, image_t * image)
     FILE *infile = fopen(filename, "r");
     if (!infile)
     {
-        printf("ERROR: no se ha indicado fichero de entrada\n");
+        printf("ERROR: no se ha encontrado el fichero %s\n", filename);
         exit(-1);
     }
     
@@ -332,7 +332,7 @@ read_PPM(char *filename, image_t * image, int format)
     FILE *infile = fopen(filename, "r");
     if (!infile)
     {
-        printf("ERROR: no se ha indicado fichero de entrada\n");
+        printf("ERROR: no se ha encontrado el fichero %s\n", filename);
         exit(-1);
     }
     if ((format != 3) && (format != 6))
