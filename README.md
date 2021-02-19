@@ -11,4 +11,4 @@ Para notificar sugerencias, mejoras y fallos, por favor contactar con
 
 ## Información adicional
 La dirección oficial de este repositorio es
-https://gitlab.unizar.es/jalastru/MP_lab_2021
+https://github.com/chusAB/MP_lab_2021
