@@ -10,7 +10,7 @@
 
 # valores por defecto
 comp=gcc
-src="scale_shift.c"
+src="axpy.c"
 vlenk=1   # 1K elements
 # vlenk=64000   # 1K elements
 vlen=$((vlenk*1024))

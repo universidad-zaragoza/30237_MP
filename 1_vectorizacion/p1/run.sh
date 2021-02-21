@@ -10,7 +10,7 @@
 
 # valores por defecto
 comp=gcc
-src="scale_shift.c"
+src="axpy.c"
 vlenk=1   # 2K elementos
 
 # floating point precision, 
