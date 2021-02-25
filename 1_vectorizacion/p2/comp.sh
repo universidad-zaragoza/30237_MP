@@ -88,14 +88,14 @@ rm -f *.o
 mkdir -p assembler
 mkdir -p reports
 
-FLAGS="-std=c11 -g -O3 -Wall -DPRECISION=$p -DLEN=$vlen"    #FLAGS="-std=c99 -g -O3"
+FLAGS="-std=c11 -g -O3 -DPRECISION=$p -DLEN=$vlen"
 LIBS="-lm"
 
 case $comp in
-    gcc | gcc-4 | gcc-5 | gcc-6 | gcc-7 | gcc-8 )
-        #echo "---------- gcc ---------------------------------------------------------"
+    gcc | gcc-4 | gcc-5 | gcc-6 | gcc-7 | gcc-8 | gcc-9)
+        # echo "---------- gcc ---------------------------------------------------------"
         # for gcc > 4.7
-        GCC_FLAGS="-g -Wall -Wextra -Wshadow"  # GCC_FLAGS="-Q -v"
+        GCC_FLAGS=" -Wall -Wextra -Wshadow"  # GCC_FLAGS="-Q -v"
         VEC_REPORT_FLAG="-fopt-info-vec-optimized -fopt-info-loop-optimized"
         # VEC_REPORT_FLAG="-fopt-info-vec-optimized -fopt-info-vec-missed"
         NOVECTOR_FLAG="-fno-tree-vectorize"
