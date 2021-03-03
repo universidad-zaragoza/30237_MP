@@ -3,7 +3,7 @@
 # 
 
 CC=gcc
-FLAGS=-std=c11 -g -O3 -march=native -Wall -Wextra -Wshadow
+FLAGS=-std=c11 -g -O3 -march=native -Wall -Wextra -Wshadow -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-parameter
 # FLAGS=-std=c99
 REPORT_FLAGS=-fopt-info-vec-optimized
 # REPORT_FLAGS=-fopt-info-vec-all -fopt-info-loop-optimized
@@ -19,8 +19,7 @@ REPORT_FLAGS=-fopt-info-vec-optimized
 # $@: file name of the target of the rule
 # http://www.gnu.org/software/make/manual/make.html#Automatic-Variables
 
-all: test_RGB2YCbCr
-#all: test_rgb2gray image_info
+all: test_sepia_filter
 
 #
 # dependency to force the creation of $(REPDIR) and $(ASMDIR) directories
@@ -40,10 +39,10 @@ jpeg_handler.o: jpeg_handler.c
 dummy.o: dummy.c
 	$(CC) $(FLAGS)  -c $< -o $@ 
 
-RGB2YCbCr.o: RGB2YCbCr.c | $(REPDIR) $(ASMDIR)
+sepia_filter.o: sepia_filter.c | $(REPDIR) $(ASMDIR)
 	$(CC)  $(FLAGS)  $(REPORT_FLAGS)  -c $<  -o $@ \
-      -Wa,-adghln=$(ASMDIR)/RGB2YCbCr.$(CC).s \
-	  2>&1 | tee $(REPDIR)/RGB2YCbCr.$(CC).report.txt
+      -Wa,-adghln=$(ASMDIR)/sepia_filter.$(CC).s \
+	  2>&1 | tee $(REPDIR)/sepia_filter.$(CC).report.txt
 
 misc.o: misc.c | $(REPDIR) $(ASMDIR)
 	$(CC)  $(FLAGS)  $(REPORT_FLAGS)  -c $<  -o $@ \
@@ -52,12 +51,11 @@ misc.o: misc.c | $(REPDIR) $(ASMDIR)
 
 # $^: names of all the prerequisites
 # http://www.gnu.org/software/make/manual/make.html#Automatic-Variables
-# test_sepia_filter: sepia_filter.o saturation.o scale.o misc.o  jpeg_handler.o dummy.o test_sepia_filter.c
-test_RGB2YCbCr: RGB2YCbCr.o misc.o jpeg_handler.o dummy.o test_RGB2YCbCr.c 
+test_sepia_filter: sepia_filter.o misc.o jpeg_handler.o dummy.o test_sepia_filter.c 
 	$(CC) $(FLAGS)  $^  -no-pie -Llib -ljpeg -lm -o $@
 
 image_info: misc.o jpeg_handler.o dummy.o image_info.c
 	$(CC) $(FLAGS)  $^  -Llib -ljpeg -lm -o $@
 
 clean:
-	rm -rf *.o test_RGB2YCbCr
+	rm -rf *.o test_sepia_filter
