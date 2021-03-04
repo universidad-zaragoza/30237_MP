@@ -32,13 +32,6 @@ sepia[3][3] = {
 };
 //----------------------------------------------------------------------------
 
-static float
-min_float(float a, float b)
-{
-    if (a < b) return a;
-    else       return b;
-}
-
 #define MAXPIXV  255.0f
 //----------------------------------------------------------------------------
 
@@ -68,19 +61,19 @@ sepia_filter_roundf0(image_t * image_in, image_t * image_out)
         {
             /* R */
             image_out->pixels[3*i + 0] = roundf(
-                min_float(MAXPIXV,
+                fminf(MAXPIXV,
                           sepia[0][0]*image_in->pixels[3*i + 0] + 
                           sepia[0][1]*image_in->pixels[3*i + 1] + 
                           sepia[0][2]*image_in->pixels[3*i + 2]));
             /* G */
             image_out->pixels[3*i + 1] = roundf(
-                min_float(MAXPIXV,
+                fminf(MAXPIXV,
                           sepia[1][0]*image_in->pixels[3*i + 0] + 
                           sepia[1][1]*image_in->pixels[3*i + 1] + 
                           sepia[1][2]*image_in->pixels[3*i + 2]));
             /* B */
             image_out->pixels[3*i + 2] = roundf(
-                min_float(MAXPIXV,
+                fminf(MAXPIXV,
                           sepia[2][0]*image_in->pixels[3*i + 0] + 
                           sepia[2][1]*image_in->pixels[3*i + 1] + 
                           sepia[2][2]*image_in->pixels[3*i + 2]));
@@ -121,17 +114,17 @@ sepia_filter_roundf1(image_t * restrict image_in, image_t * restrict image_out)
         for (int i = 0; i < height*width; i++)
         {
             /* R */
-            pixels_out[3*i + 0] = roundf(min_float(MAXPIXV,
+            pixels_out[3*i + 0] = roundf(fminf(MAXPIXV,
                           sepia[0][0]*pixels_in[3*i + 0] + 
                           sepia[0][1]*pixels_in[3*i + 1] + 
                           sepia[0][2]*pixels_in[3*i + 2]));
             /* G */
-            pixels_out[3*i + 1] = roundf(min_float(MAXPIXV,
+            pixels_out[3*i + 1] = roundf(fminf(MAXPIXV,
                           sepia[1][0]*pixels_in[3*i + 0] + 
                           sepia[1][1]*pixels_in[3*i + 1] + 
                           sepia[1][2]*pixels_in[3*i + 2]));
             /* B */
-            pixels_out[3*i + 2] = roundf(min_float(MAXPIXV,
+            pixels_out[3*i + 2] = roundf(fminf(MAXPIXV,
                           sepia[2][0]*pixels_in[3*i + 0] + 
                           sepia[2][1]*pixels_in[3*i + 1] + 
                           sepia[2][2]*pixels_in[3*i + 2]));
@@ -174,19 +167,19 @@ sepia_filter_cast0(image_t * restrict image_in, image_t * restrict image_out)
         for (int i = 0; i < height*width; i++)
         {
             /* R */
-            pixels_out[3*i + 0] = (unsigned char) (min_float(MAXPIXV,
+            pixels_out[3*i + 0] = (unsigned char) (fminf(MAXPIXV,
                           0.5 + 
                           sepia[0][0]*pixels_in[3*i + 0] + 
                           sepia[0][1]*pixels_in[3*i + 1] + 
                           sepia[0][2]*pixels_in[3*i + 2]));
             /* G */
-            pixels_out[3*i + 1] = (unsigned char) (min_float(MAXPIXV,
+            pixels_out[3*i + 1] = (unsigned char) (fminf(MAXPIXV,
                           0.5 +
                           sepia[1][0]*pixels_in[3*i + 0] + 
                           sepia[1][1]*pixels_in[3*i + 1] + 
                           sepia[1][2]*pixels_in[3*i + 2]));
             /* B */
-            pixels_out[3*i + 2] = (unsigned char) (min_float(MAXPIXV,
+            pixels_out[3*i + 2] = (unsigned char) (fminf(MAXPIXV,
                           0.5 +
                           sepia[2][0]*pixels_in[3*i + 0] + 
                           sepia[2][1]*pixels_in[3*i + 1] + 
@@ -230,19 +223,19 @@ sepia_filter_cast1(image_t * restrict image_in, image_t * restrict image_out)
         {
             /* el cast float mejora las prestaciones!! */
             /* R */
-            pixels_out[3*i + 0] = (unsigned char) (min_float(MAXPIXV,
+            pixels_out[3*i + 0] = (unsigned char) (fminf(MAXPIXV,
                           0.5f +
                           sepia[0][0]*pixels_in[3*i + 0] + 
                           sepia[0][1]*pixels_in[3*i + 1] + 
                           sepia[0][2]*pixels_in[3*i + 2]));
             /* G */
-            pixels_out[3*i + 1] = (unsigned char) (min_float(MAXPIXV,
+            pixels_out[3*i + 1] = (unsigned char) (fminf(MAXPIXV,
                           0.5f +
                           sepia[1][0]*pixels_in[3*i + 0] + 
                           sepia[1][1]*pixels_in[3*i + 1] + 
                           sepia[1][2]*pixels_in[3*i + 2]));
             /* B */
-            pixels_out[3*i + 2] = (unsigned char) (min_float(MAXPIXV,
+            pixels_out[3*i + 2] = (unsigned char) (fminf(MAXPIXV,
                           0.5f +
                           sepia[2][0]*pixels_in[3*i + 0] + 
                           sepia[2][1]*pixels_in[3*i + 1] + 
@@ -285,17 +278,17 @@ sepia_filter_cast2(image_t * restrict image_in, image_t * restrict image_out)
         for (int i = 0; i < height*width; i++)
         {
             /* R */
-            pixels_out[3*i + 0] = (unsigned char) (min_float(MAXPIXV,
+            pixels_out[3*i + 0] = (unsigned char) (fminf(MAXPIXV,
                           sepia[0][0]*pixels_in[3*i + 0] + 
                           sepia[0][1]*pixels_in[3*i + 1] + 
                           sepia[0][2]*pixels_in[3*i + 2]));
             /* G */
-            pixels_out[3*i + 1] = (unsigned char) (min_float(MAXPIXV,
+            pixels_out[3*i + 1] = (unsigned char) (fminf(MAXPIXV,
                           sepia[1][0]*pixels_in[3*i + 0] + 
                           sepia[1][1]*pixels_in[3*i + 1] + 
                           sepia[1][2]*pixels_in[3*i + 2]));
             /* B */
-            pixels_out[3*i + 2] = (unsigned char) (min_float(MAXPIXV,
+            pixels_out[3*i + 2] = (unsigned char) (fminf(MAXPIXV,
                           sepia[2][0]*pixels_in[3*i + 0] + 
                           sepia[2][1]*pixels_in[3*i + 1] + 
                           sepia[2][2]*pixels_in[3*i + 2]));
@@ -338,19 +331,19 @@ sepia_filter_cast_esc(image_t * restrict image_in, image_t * restrict image_out)
         {
             /* el cast float mejora las prestaciones!! */
             /* R */
-            pixels_out[3*i + 0] = (unsigned char) (min_float(MAXPIXV,
+            pixels_out[3*i + 0] = (unsigned char) (fminf(MAXPIXV,
                           0.5f +
                           sepia[0][0]*pixels_in[3*i + 0] + 
                           sepia[0][1]*pixels_in[3*i + 1] + 
                           sepia[0][2]*pixels_in[3*i + 2]));
             /* G */
-            pixels_out[3*i + 1] = (unsigned char) (min_float(MAXPIXV,
+            pixels_out[3*i + 1] = (unsigned char) (fminf(MAXPIXV,
                           0.5f +
                           sepia[1][0]*pixels_in[3*i + 0] + 
                           sepia[1][1]*pixels_in[3*i + 1] + 
                           sepia[1][2]*pixels_in[3*i + 2]));
             /* B */
-            pixels_out[3*i + 2] = (unsigned char) (min_float(MAXPIXV,
+            pixels_out[3*i + 2] = (unsigned char) (fminf(MAXPIXV,
                           0.5f +
                           sepia[2][0]*pixels_in[3*i + 0] + 
                           sepia[2][1]*pixels_in[3*i + 1] + 

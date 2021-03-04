@@ -3,7 +3,7 @@
 # 
 
 CC=gcc
-FLAGS=-std=c11 -g -O3 -march=native -Wall -Wextra -Wshadow -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-parameter
+FLAGS=-std=gnu17 -g -O3 -ffast-math -march=native -Wall -Wextra -Wshadow -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-parameter
 # FLAGS=-std=c99
 REPORT_FLAGS=-fopt-info-vec-optimized
 # REPORT_FLAGS=-fopt-info-vec-all -fopt-info-loop-optimized
