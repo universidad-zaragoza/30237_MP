@@ -110,7 +110,7 @@ axpy()
     }
     end_t = get_wall_time();
     results(end_t - start_t, "axpy");
-    check(x);
+    check(y);
     return 0;
 }
 
