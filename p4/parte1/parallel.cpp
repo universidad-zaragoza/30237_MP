@@ -16,6 +16,7 @@ int main()
 	//std::ostringstream buffer;
 	//buffer << i << "-" << omp_get_thread_num() << std::endl;
 	//std::cout << buffer.str();
+	//Opción 2 bis
 	std::cout <<  std::to_string(i) + "-" + std::to_string(omp_get_thread_num()) + "\n";
     }
     return 0;
