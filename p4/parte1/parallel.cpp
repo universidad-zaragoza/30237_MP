@@ -1,4 +1,4 @@
-// firstparallel.cpp
+// parallel.cpp
 #include <iostream>
 #include <sstream>
 #include <string>
