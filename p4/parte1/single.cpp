@@ -1,8 +1,6 @@
 /* single.cpp */
 #include <omp.h>
 #include <iostream>
-#include <chrono>
-#include <thread>
 
 const unsigned int DIM = 12000000;
 double A[DIM], B[DIM], C[DIM], D[DIM];
@@ -38,8 +36,6 @@ int main(void){
       }
     }
   }
-
-
 
   #pragma omp parallel shared(summed) 
   {
