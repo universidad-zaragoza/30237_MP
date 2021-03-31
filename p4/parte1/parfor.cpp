@@ -1,15 +1,19 @@
 /* parfor.cpp */
-#include <omp>
+#include <omp.h>
 #include <iostream>
 #include <random>
 #include <algorithm>
-#include <time>
+//#include <time.h>
+#include <ctime>
 #include <chrono>
+#include <cmath>
+#include <math.h>
 
 
 
-unsigned const int DIM1 = 500, DIM2=200;
+unsigned const int DIM1 = 50000, DIM2=20000;
 double A[DIM1], B[DIM2][DIM1], C[DIM2][DIM1], s;
+double * aux;
 
 
 int main(void){
@@ -28,43 +32,37 @@ int main(void){
   maxnthreads=omp_get_max_threads();
   numprocsOMP=omp_get_num_procs();
 
-  // omp_set_dynamic(true);
+  //omp_set_dynamic(true);
 
   std::cout << "Entorno de Ejecución:" << std::endl;
   std::cout << " - Máximo nº de threads disponibles (omp_get_max_threads): " << maxnthreads << std::endl;
   std::cout << " - Nº de procesadores disponibles (omp_get_num_procs): " << numprocsOMP << std::endl;
 
-  clock_t t_start = clock();
-  auto start = std::chrono::system_clock::now();
-  auto start2 = std::chrono::high_resolution_clock::now();
+  std::clock_t t_start1 = std::clock();
+  auto t_start2 = std::chrono::high_resolution_clock::now();
 
-  #pragma parallel for schedule(runtime) private(i,j) shared (A,B,C,nthreadsOMP)
-  {
-    for (j=0; j<DIM2; j++){
-      nthreadsOMP = omp_get_num_threads();
-      for (i = 1; i<DIM1; i++){
-        B[j][i] = ((A[i]+A[i-1])/2.0)/sqrt(A[i]);
-        C[j][i] = sqrt(A[i]*2) / (A[i] - (A[i]/2.0));
-        B[j][i] = C[j][i] * ( B[j][i] ^2) * sin(A[i]);
+  #pragma omp parallel for schedule(runtime) private(i,j) shared (A,B,C,nthreadsOMP)
+  for (j=0; j<DIM2; j++){
+    nthreadsOMP = omp_get_num_threads();
+    for (i = 1; i<DIM1; i++){
+      B[j][i] = ((A[i]+A[i-1])/2.0)/sqrt(A[i]);
+      C[j][i] = sqrt(A[i]*2) / (A[i] - (A[i]/2.0));
+      B[j][i] = C[j][i] * std::pow(B[j][i],2) * sin(A[i]);
     }
   }
   
 
-  auto end = std::chrono::system_clock::now();
-  auto end2 = std::chrono::high_resolution_clock::now();
-  clock_t t_end = clock();
+  auto t_end2 = std::chrono::high_resolution_clock::now();
+  std::clock_t t_end1 = std::clock();
 
-  std::chrono::duration<double> elapsed_seconds = end-start;
-  std::chrono::duration<double> elapsed_seconds2 = end2-start2;
-  std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+  std::chrono::duration<double> elapsed_seconds2 = t_end2-t_start2;
 
-
-  s = *std::max_element(B, B+DIM1+DIM2);
+  double *aux = (double *) B;
+  s = *std::max_element(aux, aux + ((DIM2-1)*DIM1));
   
   std::cout << " - Threads utilizados (omp_get_num_threads): " << nthreadsOMP << std::endl;
 
-  std::cout << "Chrono::system_clock, tiempo transcurrido: " << elapsed_seconds.count() << std::endl;
-  std::cout << "Chrono::high_resolution_clock, tiempo transcurrido: " << elapsed_seconds.count() << std::endl;
-  std::cout << "Time, tiempo transcurrido: " << (((float)(t_end-t_start))/CLOCKS_PER_SEC) << std::endl;
+  std::cout << "Chrono::high_resolution_clock, tiempo transcurrido: " << elapsed_seconds2.count() << std::endl;
+  std::cout << "Time, tiempo transcurrido: " << (((float)(t_end1-t_start1))/CLOCKS_PER_SEC) << std::endl;
 
 }
