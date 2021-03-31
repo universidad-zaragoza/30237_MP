@@ -3,18 +3,13 @@
 #include <iostream>
 #include <random>
 #include <algorithm>
-//#include <time.h>
 #include <ctime>
 #include <chrono>
 #include <cmath>
-#include <math.h>
-
-
 
 unsigned const int DIM1 = 50000, DIM2=20000;
 double A[DIM1], B[DIM2][DIM1], C[DIM2][DIM1], s;
 double * aux;
-
 
 int main(void){
   clock_t t;
@@ -50,7 +45,6 @@ int main(void){
       B[j][i] = C[j][i] * std::pow(B[j][i],2) * sin(A[i]);
     }
   }
-  
 
   auto t_end2 = std::chrono::high_resolution_clock::now();
   std::clock_t t_end1 = std::clock();
@@ -61,7 +55,6 @@ int main(void){
   s = *std::max_element(aux, aux + ((DIM2-1)*DIM1));
   
   std::cout << " - Threads utilizados (omp_get_num_threads): " << nthreadsOMP << std::endl;
-
   std::cout << "Chrono::high_resolution_clock, tiempo transcurrido: " << elapsed_seconds2.count() << std::endl;
   std::cout << "Time, tiempo transcurrido: " << (((float)(t_end1-t_start1))/CLOCKS_PER_SEC) << std::endl;
 
