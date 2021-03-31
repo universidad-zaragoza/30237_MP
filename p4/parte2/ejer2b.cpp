@@ -1,10 +1,10 @@
-/* ejer2c.cpp */
+/* ejer2b.cpp */
 #include <omp.h>
 #include <iostream>
 #include <random>
 
 const unsigned int N = 1000000;
-double A[N];
+double A[N], B[N];
 
 int main(void){
   int nthreads, tnumber;
@@ -18,9 +18,9 @@ int main(void){
   }
   
   for (int i = 1; i < N; ++i) {
-    A[i] = A[i] - A[i-1];
+    B[i] = A[i] - A[i-1];
   }
   
-  std::cout << "A[150]=" << A[150] << std::endl;
+  std::cout << "A[150]=" << A[150] << "A[149]=" << A[149] << "B[150]=" << B[150] << std::endl;
 
 }

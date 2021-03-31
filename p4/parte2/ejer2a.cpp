@@ -1,4 +1,4 @@
-/* ordered.cpp */
+/* ejer2a.cpp */
 #include <omp.h>
 #include <iostream>
 #include <random>
@@ -24,7 +24,7 @@ int main(void){
   }
   
 
-  for (int i=0 ; i < N; ++i){
+  for (int i=0 ; i < (N/2)-1; ++i){
     A[2*i] = B[i];
     C[2*i] = A[2*i];
     C[2*i + 1] = A[2*i + 1];
