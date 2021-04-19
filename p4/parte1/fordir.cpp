@@ -25,7 +25,7 @@ int main(void){
   #pragma omp parallel private(nthreads,tnumber) shared(A,B)
   {
     #pragma omp for schedule (static,4)
-    for (int n = 2; n <= DIM; n++){
+    for (int n = 2; n < DIM; n++){
       B[n] = (A[n] - A[n-1]) / 2.0;
       nthreads = omp_get_num_threads();
       tnumber = omp_get_thread_num();
