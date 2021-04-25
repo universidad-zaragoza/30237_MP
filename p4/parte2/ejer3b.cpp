@@ -4,7 +4,7 @@
 #include <random>
 #include <math.h>
 
-const unsigned int N = 1000000;
+const unsigned int N = 10000;
 double A[N][N], B[N][N], C[N][N], t[N];
 
 int main(void){
