@@ -20,7 +20,7 @@ int main(void){
 
   j = 0;
 
-  for (i = 0; i < (N-2); ++i) {
+  for (i = 0; i < ((N/2)-1); ++i) {
     j = j + 2;
     B[j] = A[i];
   }
