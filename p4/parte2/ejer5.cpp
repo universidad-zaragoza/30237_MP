@@ -19,8 +19,6 @@ int main(void){
     B[i] = dis(gen);
   }
 
-  j = 0;
-
   for (int i = 0; i < N; ++i) {
     A[i] = A[i] + B[i];
     q = q + A[i];
