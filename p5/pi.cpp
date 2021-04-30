@@ -24,10 +24,10 @@ int main(int argc, char **argv){
 
   subinterval = 1.0 / nsubintervals;
   area = 0.0;
-
+  
   for (i = 0; i < nsubintervals; i++){
-    double x = (i-0.5)*subinterval;  // S1
-    area = area + 4.0/(1.0 + x*x);   // S2
+    x = (i-0.5)*subinterval;  
+    area = area + (4.0/(1.0 + x*x));
   }
 
   pi = subinterval*area;
