@@ -10,7 +10,10 @@ int main(void){
   int nthreads, tnumber;
 
   std::random_device rd;  // Se utilizará para sembrar el generador de aleatorios
-  std::mt19937 gen(rd()); // Sembrado de  mersenne_twister_engine con rd()
+  std::mt19937 gen(78); // Sembrado de  mersenne_twister_engine con rd()
+  						// se fija el valor de la semilla para asegurar 
+						// replicabilidad en los experimentos
+  //std::mt19937 gen(rd()); // Sembrado de  mersenne_twister_engine con rd()
   std::uniform_real_distribution<> dis(0.0, 100.0); //Configuración del espacio de de generación
 
   for (int i = 0; i < N; ++i) {
