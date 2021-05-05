@@ -8,7 +8,8 @@
 int main(int argc, char *argv[]){
   double nsubintervals = 100000000;
   double x, pi, area, subinterval;
-  int i, count1, count2, cr;
+  long int i;
+  int count1, count2, cr;
   
   int maxnthreadsOMP = omp_get_max_threads();
   int nprocsOMP = omp_get_num_procs();
@@ -33,7 +34,7 @@ int main(int argc, char *argv[]){
   auto t_start2 = std::chrono::high_resolution_clock::now();
   double wtime1 = omp_get_wtime();
 
-  for (int i = 0; i < nsubintervals; i++){
+  for (i = 0; i < nsubintervals; i++){
     // threadID = omp_get_thread_num();
     // std::cout << "Thread " << threadID << " : iteración " << i << std::endl;
     x = (i-0.5)*subinterval;  // S1
