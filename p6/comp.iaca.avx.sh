@@ -77,7 +77,8 @@ rm -f *.o
 mkdir -p assembler
 mkdir -p reports
 
-FLAGS="-std=gnu99 -g -O3 -DPRECISION=$p -DLEN=$vlen"  # -Ofast -mtune=native
+# FLAGS="-std=gnu99 -g -O3 -DPRECISION=$p -DLEN=$vlen"  # -Ofast -mtune=native
+FLAGS="-std=c99 -g -O3 -DPRECISION=$p"  # -Ofast -mtune=native
 # FLAGS="-std=c99 -g -O3 -DPRECISION=$p -DLEN=$vlen"  # -Ofast -mtune=native
 LIBS="-lm"
 
