@@ -6,7 +6,7 @@
 using namespace std;
 
 // Declaración de la función en ensamablador en la que implementaremos el fetch and da
-extern "C" unsigned int mi_fetch_and_add(long long *x, int add);
+extern "C" long long mi_fetch_and_add(long long *x, long long add);
 
 const long long n_elementos = 100000000;
 const unsigned int n_threads = 40;
