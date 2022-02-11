@@ -1,4 +1,4 @@
-# Prácticas de Multiprocesadores, curso 2020-22
+# Prácticas de Multiprocesadores, curso 2021-22
 
 ## Introducción
 Este repositorio contiene los guiones y códigos para las sesiones de laboratorio
