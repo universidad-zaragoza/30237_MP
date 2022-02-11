@@ -3,14 +3,14 @@
 # uso:
 #    ./comp.sh -c compilador -f fichero -l vector_len (Kelements) -p precision
 # ejemplo
-#    ./comp.sh -c gcc  -f axpy.c -l 2  -p 0
+#    ./comp.sh -c gcc  -f axpby.c -l 2  -p 0
 
 [ -z "$CPU" ] && echo "Hay que inicializar la variable CPU (source ./init_cpuname.sh)" && exit 1;
 #: ${CPU:?"Hay que inicializar la variable CPU (source ./init_cpuid.sh)"}
 
 # valores por defecto
 comp=gcc
-src="axpy.c"
+src="axpby.c"
 vlenk=1   # 1K elements
 # vlenk=64000   # 1K elements
 vlen=$((vlenk*1024))
@@ -91,14 +91,14 @@ rm -f *.o
 mkdir -p assembler
 mkdir -p reports
 
-FLAGS="-std=c11 -g -O3 -DPRECISION=$p -DLEN=$vlen"  # -Ofast -mtune=native
+FLAGS="-std=c11 -g -O3 -DPRECISION=$p -DLEN=$vlen -gdwarf-3 -gstrict-dwarf"  # -Ofast -mtune=native
 LIBS="-lm"
 
 case $comp in
     gcc | gcc-4 | gcc-5 | gcc-6 | gcc-7 | gcc-8 | gcc-9)
         # echo "---------- gcc ---------------------------------------------------------"
         # for gcc > 4.7
-        GCC_FLAGS=" "  # GCC_FLAGS="-Q -v"
+        GCC_FLAGS=" -Wall -Wextra -Wshadow"  # GCC_FLAGS="-Q -v"
         VEC_REPORT_FLAG="-fopt-info-vec-optimized"
         # VEC_REPORT_FLAG="-fopt-info-vec-optimized -fopt-info-vec-missed"
         NOVECTOR_FLAG="-fno-tree-vectorize"

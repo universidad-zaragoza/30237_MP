@@ -22,7 +22,7 @@
 #ifndef LEN 
     #define LEN     1024
 #endif
-#define FLOP_IT    (unsigned long int)  2     /* 2 FLOP per iteration */
+#define FLOP_IT    (unsigned long int)  3     /* 3 FLOP per iteration */
 
 // Numero total de FLOP que queremos ejecutar
 // Si es múltiplo de LEN y FLOP_IT se facilitan las cuentas */
@@ -39,9 +39,10 @@
 #define SIMD_ALIGN  64  /* 512 bits (preparado para AVX-512) */
 static real x[LEN] __attribute__((aligned(SIMD_ALIGN)));
 static real y[LEN] __attribute__((aligned(SIMD_ALIGN)));
-static real alpha = 0.25;
+static real alpha = 0.4;
+static real beta = 0.6;
 
-int dummy(real a[], real b[], real alpha);
+int dummy(real a[], real b[], real alpha, real beta);
 
 /* inhibimos el inlining de algunas funciones
  * para que el ensamblador sea más cómodo de leer */
@@ -91,10 +92,10 @@ void results(const double wall_time, const char *loop)
             wall_time/(1e-12*NTIMES*LEN) /* ps/el */);
 }
 
-/* axpy functions */
+/* axpby functions */
 __attribute__ ((noinline))
 int
-axpy()
+axpby()
 {
     double start_t, end_t;
 
@@ -104,19 +105,19 @@ axpy()
     {
         for (unsigned int i = 0; i < LEN; i++)
         {
-            y[i] = alpha*x[i] + y[i];
+            y[i] = alpha*x[i] + beta*y[i];
         }
-        dummy(x, y, alpha);
+        dummy(x, y, alpha, beta);
     }
     end_t = get_wall_time();
-    results(end_t - start_t, "axpy");
-    check(x);
+    results(end_t - start_t, "axpby");
+    check(y);
     return 0;
 }
 
 __attribute__ ((noinline))
 int
-axpy_intr_SSE()
+axpby_intr_SSE()
 {
     double start_t, end_t;
 
@@ -124,46 +125,50 @@ axpy_intr_SSE()
     start_t = get_wall_time();
 
 #if PRECISION==0
-  __m128 vX, vY, valpha, vaX;
+  __m128 vX, vY, valpha, vbeta;
     for (unsigned int nl = 0; nl < NTIMES; nl++)
     {
         valpha = _mm_set1_ps(alpha);     // valpha = _mm_load1_ps(&alpha);
+        vbeta = _mm_set1_ps(beta);       // vbeta = _mm_load1_ps(&beta);
         for (unsigned int i = 0; i < LEN; i+= SSE_LEN)
         {
             vX = _mm_load_ps(&x[i]);
             vY = _mm_load_ps(&y[i]);
-            vaX = _mm_mul_ps(valpha, vX);
-            vY = _mm_add_ps(vaX, vY);
+            vX = _mm_mul_ps(valpha, vX);
+            vY = _mm_mul_ps(vbeta, vY);
+            vY = _mm_add_ps(vX, vY);
             _mm_store_ps(&y[i], vY);
         }
-        dummy(x, y, alpha);
+        dummy(x, y, alpha, beta);
     }
 #else
-    __m128d vX, vY, valpha, vaX;
+    __m128d vX, vY, valpha, vbeta;
     for (unsigned int nl = 0; nl < NTIMES; nl++)
     {
-        valpha = _mm_set1_pd(alpha);     // valpha = _mm_load1_ps(&alpha);
+        valpha = _mm_set1_pd(alpha);     // valpha = _mm_load1_pd(&alpha);
+        vbeta = _mm_set1_pd(beta);     // vbeta = _mm_load1_pd(&beta);
         for (unsigned int i = 0; i < LEN; i+= SSE_LEN)
         {
             vX = _mm_load_pd(&x[i]);
             vY = _mm_load_pd(&y[i]);
-            vaX = _mm_mul_pd(valpha, vX);
+            vX = _mm_mul_pd(valpha, vX);
+            vY = _mm_mul_pd(vbeta, vY);
             vY = _mm_add_pd(vaX, vY);
             _mm_store_pd(&y[i], vY);
         }
-        dummy(x, y, alpha);
+         dummy(x, y, alpha, beta);
     }
 #endif
 
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_intr_SSE");
+  results(end_t - start_t, "axpby_intr_SSE");
   check(y);
   return 0;
 }
 
 #if 0
 __attribute__ ((noinline))
-int axpy_intr_AVX()
+int axpby_intr_AVX()
 {
   double start_t, end_t;
 
@@ -177,7 +182,7 @@ int axpy_intr_AVX()
 #endif
 
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_intr_AVX");
+  results(end_t - start_t, "axpby_intr_AVX");
   check(y);
   return 0;
 }
@@ -188,8 +193,9 @@ int main()
   // printf("LEN: %u, NTIMES: %lu\n\n", LEN, NTIMES);
   printf("                     Time    TPI\n");
   printf("              Loop    ns     ps/el     Checksum \n");
-  axpy();
-  // axpy_intr_SSE();
-  // axpy_intr_AVX();
+  axpby();
+  // axpby_intr_SSE();
+  // axpby_intr_AVX();
   exit(0);
 }
+

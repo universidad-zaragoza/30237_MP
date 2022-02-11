@@ -1,6 +1,6 @@
 #include "precision.h"      /* chus */
 
-int dummy(real x[], real y[], real a)
+int dummy(real a[], real b[], real s, real t)
 {
     // --  called in each loop to make all computations appear required
 	return 0;
