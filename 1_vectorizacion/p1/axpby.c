@@ -153,7 +153,7 @@ axpby_intr_SSE()
             vY = _mm_load_pd(&y[i]);
             vX = _mm_mul_pd(valpha, vX);
             vY = _mm_mul_pd(vbeta, vY);
-            vY = _mm_add_pd(vaX, vY);
+            vY = _mm_add_pd(vX, vY);
             _mm_store_pd(&y[i], vY);
         }
          dummy(x, y, alpha, beta);
