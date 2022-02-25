@@ -43,9 +43,10 @@
 static real x[2*LEN] __attribute__((aligned(SIMD_ALIGN)));
 static real y[2*LEN] __attribute__((aligned(SIMD_ALIGN)));
 static real z[2*LEN] __attribute__((aligned(SIMD_ALIGN)));
-static real alpha = 0.25;
+static real alpha = 0.4;
+static real beta = 0.6;
 
-int dummy(real x[], real y[], real z[], real alpha);
+int dummy(real x[], real y[], real z[], real alpha, real beta);
 
 /* inhibimos el inlining de algunas funciones
  * para que el ensamblador sea más cómodo de leer */
@@ -86,6 +87,9 @@ void check(real arr[LEN])
 __attribute__ ((noinline))
 int init()
 {
+#ifdef __INTEL_COMPILER
+  #pragma novector
+#endif
   for (int j = 0; j < LEN; j++)
   {
     x[j] = 2.0;
@@ -107,7 +111,7 @@ void results(const double wall_time, const char *loop)
 #ifndef __INTEL_COMPILER
   __attribute__((optimize("no-tree-vectorize")))
 #endif
-int axpy_stride_esc()
+int axpby_stride_esc()
 {
   double start_t, end_t;
 
@@ -120,17 +124,17 @@ int axpy_stride_esc()
 #endif
     for (unsigned int i = 0; i < 2*LEN; i+=2)
     {
-      y[i] = alpha*x[i] + y[i];
+      y[i] = alpha*x[i] + beta*y[i];
     }
-    dummy(x, y, z, alpha);
+    dummy(x, y, z, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_stride_esc");
+  results(end_t - start_t, "axpby_stride_esc");
   check(y);
   return 0;
 }
 
-int axpy_stride_vec()
+int axpby_stride_vec()
 {
   double start_t, end_t;
 
@@ -140,18 +144,18 @@ int axpy_stride_vec()
   {
     for (unsigned int i = 0; i < 2*LEN; i+=2)
     {
-        y[i] = alpha*x[i] + y[i];
+        y[i] = alpha*x[i] + beta*y[i];
     }
-    dummy(x, y, z, alpha);
+    dummy(x, y, z, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_stride_vec");
+  results(end_t - start_t, "axpby_stride_vec");
   check(y);
   return 0;
 }
 
 #if 0
-int axpy_stride_v2(real * restrict vx)
+int axpby_stride_v2(real * restrict vx)
 {
   real *xx = __builtin_assume_aligned(vx, SIMD_ALIGN);
   real *yy = __builtin_assume_aligned(vy, SIMD_ALIGN);
@@ -164,12 +168,12 @@ int axpy_stride_v2(real * restrict vx)
   {
     for (unsigned int i = 0; i < 2*LEN; i+=2)
     {
-      yy[i] = alpha*xx[i] + yy[i];
+      yy[i] = alpha*xx[i] + beta*yy[i];
     }
-    dummy(xx, yy, z, alpha);
+    dummy(xx, yy, z, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_stride_v2");
+  results(end_t - start_t, "axpby_stride_v2");
   check(yy);
   return 0;
 }
@@ -179,9 +183,9 @@ int main()
 {
   printf("                     Time       TPI\n");
   printf("             Loop     ns       ps/el     Checksum\n");
-  axpy_stride_esc();
-  axpy_stride_vec();
-  //axpy_stride_v2(x);
+  axpby_stride_esc();
+  axpby_stride_vec();
+  //axpby_stride_v2(x);
   return 0;
 }
 

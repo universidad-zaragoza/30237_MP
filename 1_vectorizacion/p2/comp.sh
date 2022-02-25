@@ -99,6 +99,11 @@ case $comp in
         VEC_REPORT_FLAG="-fopt-info-vec-optimized -fopt-info-loop-optimized"
         # VEC_REPORT_FLAG="-fopt-info-vec-optimized -fopt-info-vec-missed"
         NOVECTOR_FLAG="-fno-tree-vectorize"
+        EXTRA_FLAGS=""
+
+        if [ ${id} = "axpby_stride" ]; then
+           EXTRA_FLAGS="-mfma -ffast-math"
+        fi
 
         $comp -DPRECISION=$p -c ../dummy.c
 
@@ -107,23 +112,23 @@ case $comp in
         # nota: las compilaciones con -fno-tree-vectorize no generan informe
 
         #echo "---------- gcc (AVX) ---------------------------------------------------"
-        echo "gcc native ... "
-        binario=${id}.${vlenk}k.${precision}.native.${comp}
+        # echo "gcc native ... "
+        # binario=${id}.${vlenk}k.${precision}.native.${comp}
+        # rm -f ${binario}
+        # $comp  -march=native $FLAGS $GCC_FLAGS $EXTRA_FLAGS  $VEC_REPORT_FLAG  \
+        #       dummy.o ../${src} $LIBS -o ${binario}             \
+        #       2>&1  | tee reports/${binario}.report.txt
+        # objdump -Sd ${binario} > assembler/${binario}.s
+        # echo -e "OK\n"
+
+        echo "gcc avx2 ... "
+        binario=${id}.${vlenk}k.${precision}.avx2.${comp}
         rm -f ${binario}
-        $comp  -march=native $FLAGS $GCC_FLAGS $VEC_REPORT_FLAG  \
-               dummy.o ../${src} $LIBS -o ${binario}             \
-               2>&1  | tee reports/${binario}.report.txt
+        $comp  -mavx2 $FLAGS $GCC_FLAGS $EXTRA_FLAGS  $VEC_REPORT_FLAG    \
+                dummy.o ../${src} $LIBS -o ${binario}        \
+                2>&1  | tee reports/${binario}.report.txt
         objdump -Sd ${binario} > assembler/${binario}.s
         echo -e "OK\n"
-
-        # echo -n "gcc avx2 ... "
-        # binario=${id}.${vlenk}k.${precision}.avx2.${comp}
-        # rm -f ${binario}
-        # $comp  -mavx2  $FLAGS $GCC_FLAGS $VEC_REPORT_FLAG    \
-        #        dummy.o ../${src} $LIBS -o ${binario}        \
-        #        | tee reports/${binario}.report.txt   2>&1
-        # objdump -Sd ${binario} > assembler/${binario}.s
-        # echo "OK"
 
         # xeon phi
         # $comp  -march=knl -DPRECISION=$p $FLAGS $GCC_FLAGS $VEC_REPORT_FLAG  \

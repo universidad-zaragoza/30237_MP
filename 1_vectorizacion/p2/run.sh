@@ -11,8 +11,9 @@
 # valores por defecto
 comp=gcc
 # flag march
-arch=native
-src="triad_align.c"
+arch=avx2
+#arch=native
+src="axpby_align.c"
 vlenk=1   # 1K elementos
 
 # floating point precision, 

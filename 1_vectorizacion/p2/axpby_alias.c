@@ -23,7 +23,7 @@
 #ifndef LEN 
     #define LEN     1024
 #endif
-#define FLOP_IT    (unsigned long int)  2     /* 2 FLOP per iteration */
+#define FLOP_IT    (unsigned long int)  3     /* 3 FLOP per iteration */
 
 // Numero total de FLOP que queremos ejecutar
 // Si es múltiplo de LEN y FLOP_IT se facilitan las cuentas */
@@ -43,9 +43,10 @@
 static real x[LEN+1] __attribute__((aligned(SIMD_ALIGN)));
 static real y[LEN+1] __attribute__((aligned(SIMD_ALIGN)));
 static real z[LEN+1] __attribute__((aligned(SIMD_ALIGN)));
-static real alpha = 0.25;
+static real alpha = 0.4;
+static real beta = 0.6;
 
-int dummy(real x[], real y[], real z[], real alpha);
+int dummy(real x[], real y[], real z[], real alpha, real beta);
 
 /* inhibimos el inlining de algunas funciones
  * para que el ensamblador sea más cómodo de leer */
@@ -96,10 +97,10 @@ void results(const double wall_time, const char *loop)
             wall_time/(1e-12*NTIMES*LEN) /* ps/el */);
 }
 
-/* axpy functions */
+/* axpby functions */
 __attribute__ ((noinline))
 int
-axpy_alias_v1(real *vz, real *vy, real *vx)
+axpby_alias_v1(real *vz, real *vy, real *vx)
 {
   double start_t, end_t;
 
@@ -109,9 +110,9 @@ axpy_alias_v1(real *vz, real *vy, real *vx)
   {
     for (unsigned int i = 0; i < LEN; i++)
     {
-        vz[i] = alpha*vx[i] + vy[i];
+        vz[i] = alpha*vx[i] + beta*vy[i];
     }
-    dummy(vx, vy, vz, alpha);
+    dummy(vx, vy, vz, alpha, beta);
   }
   end_t = get_wall_time();
   results(end_t - start_t, "axpy_alias_v1");
@@ -121,7 +122,7 @@ axpy_alias_v1(real *vz, real *vy, real *vx)
 
 __attribute__ ((noinline))
 int
-axpy_alias_v2(real * restrict vz, real * restrict vx, real * restrict vy)
+axpby_alias_v2(real * restrict vz, real * restrict vx, real * restrict vy)
 {
   double start_t, end_t;
 
@@ -131,9 +132,9 @@ axpy_alias_v2(real * restrict vz, real * restrict vx, real * restrict vy)
   {
     for (unsigned int i = 0; i < LEN; i++)
     {
-        vz[i] = alpha*vx[i] + vy[i];
+        vz[i] = alpha*vx[i] + beta*vy[i];
     }
-    dummy(vx, vy, vz, alpha);
+    dummy(vx, vy, vz, alpha, beta);
   }
   end_t = get_wall_time();
   results(end_t - start_t, "axpy_alias_v2");
@@ -142,7 +143,7 @@ axpy_alias_v2(real * restrict vz, real * restrict vx, real * restrict vy)
 }
 
 int
-axpy_alias_v3(real *vz, real *vx, real *vy)
+axpby_alias_v3(real *vz, real *vx, real *vy)
 {
   double start_t, end_t;
 
@@ -154,9 +155,9 @@ axpy_alias_v3(real *vz, real *vx, real *vy)
     #pragma GCC ivdep
     for (unsigned int i = 0; i < LEN; i++)
     {
-      vz[i] = alpha*vx[i] + vy[i];
+      vz[i] = alpha*vx[i] + beta*vy[i];
     }
-    dummy(vx, vy, vz, alpha);
+    dummy(vx, vy, vz, alpha, beta);
   }
   end_t = get_wall_time();
   results(end_t - start_t, "axpy_alias_v3");
@@ -165,7 +166,7 @@ axpy_alias_v3(real *vz, real *vx, real *vy)
 }
 
 int
-axpy_alias_v4(real * restrict vz, real * restrict vx, real * restrict vy)
+axpby_alias_v4(real * restrict vz, real * restrict vx, real * restrict vy)
 {
   real *xx = __builtin_assume_aligned(vx, SIMD_ALIGN);
   real *yy = __builtin_assume_aligned(vy, SIMD_ALIGN);
@@ -179,9 +180,9 @@ axpy_alias_v4(real * restrict vz, real * restrict vx, real * restrict vy)
   {
     for (unsigned int i = 0; i < LEN; i++)
     {
-      zz[i] = alpha*xx[i] + yy[i];
+      zz[i] = alpha*xx[i] + beta*yy[i];
     }
-    dummy(xx, yy, zz, alpha);
+    dummy(xx, yy, zz, alpha, beta);
   }
   end_t = get_wall_time();
   results(end_t - start_t, "axpy_alias_v4");
@@ -190,7 +191,7 @@ axpy_alias_v4(real * restrict vz, real * restrict vx, real * restrict vy)
 }
 
 /* variables globales */
-int axpy()
+int axpby()
 {
   double start_t, end_t;
 
@@ -201,12 +202,12 @@ int axpy()
   {
     for (unsigned int i = 0; i < LEN; i++)
     {
-      y[i] = alpha*x[i] + y[i];
+      y[i] = alpha*x[i] + beta*y[i];
     }
-    dummy(x, y, z, alpha);
+    dummy(x, y, z, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy");
+  results(end_t - start_t, "axpby");
   check(y);
   return 0;
 }
@@ -218,29 +219,29 @@ int main()
   //x = aligned_alloc(SIMD_ALIGN, (LEN+1)*sizeof(real));
   //y = aligned_alloc(SIMD_ALIGN, (LEN+1)*sizeof(real));
     
-  /* z[] = alpha*x[] + y[] */
+  /* z[] = alpha*x[] + beta*y[] */
 
   printf("                     Time       TPI\n");
   printf("             Loop     ns       ps/el     Checksum\n");
 
-  axpy_alias_v1(&y[1], x, y);      /* solapamiento y dependencia */
-  axpy_alias_v1(y, &x[1], &y[1]);  /* solapamiento, no dependencia */
-  axpy_alias_v1(y, x, y);          /* solapamiento, no dependencia */
-  axpy_alias_v1(z, x, y);          /* no solapamiento, no dependencia */
+  axpby_alias_v1(&y[1], x, y);      /* solapamiento y dependencia */
+  axpby_alias_v1(y, &x[1], &y[1]);  /* solapamiento, no dependencia */
+  axpby_alias_v1(y, x, y);          /* solapamiento, no dependencia */
+  axpby_alias_v1(z, x, y);          /* no solapamiento, no dependencia */
 
   /* restrict en parametros */
-  axpy_alias_v2(&z[1], &x[1], &y[1]);  /* no solapamiento, no dependencia */
-  axpy_alias_v2(z, x, y);               /* no solapamiento, no dependencia */
+  axpby_alias_v2(&z[1], &x[1], &y[1]);  /* no solapamiento, no dependencia */
+  axpby_alias_v2(z, x, y);               /* no solapamiento, no dependencia */
 
   /* #pragma GCC ivdep */
-  axpy_alias_v3(&z[1], &x[1], &y[1]);  /* no solapamiento, no dependencia */
-  axpy_alias_v3(z, x, y);              /* no solapamiento, no dependencia */
+  axpby_alias_v3(&z[1], &x[1], &y[1]);  /* no solapamiento, no dependencia */
+  axpby_alias_v3(z, x, y);              /* no solapamiento, no dependencia */
 
   /* restrict en parametros + __builtin_assume_aligned() */
-  axpy_alias_v4(z, x, y);             /* no solapamiento, no dependencia */
+  axpby_alias_v4(z, x, y);             /* no solapamiento, no dependencia */
 
-  /* axpy p1 */
-  axpy();                             /* solapamiento, no dependencia */
+  /* axpby p1 */
+  axpby();                             /* solapamiento, no dependencia */
 
   return 0;
 }
