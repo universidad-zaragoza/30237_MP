@@ -182,7 +182,7 @@ int axpby_align_v1_intr()
 #endif
 
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_align_v1_intr");
+  results(end_t - start_t, "axpby_align_v1_intr");
   check(y);
   return 0;
 }
@@ -228,7 +228,7 @@ int axpby_align_v2_intr()
 #endif
 
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_align_v2_intr");
+  results(end_t - start_t, "axpby_align_v2_intr");
   check(y);
   return 0;
 }
@@ -274,7 +274,7 @@ int axpby_align_v1_intru()
 #endif
 
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_align_v1_intru");
+  results(end_t - start_t, "axpby_align_v1_intru");
   check(y);
   return 0;
 }
