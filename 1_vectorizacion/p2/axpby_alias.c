@@ -115,7 +115,7 @@ axpby_alias_v1(real *vz, real *vy, real *vx)
     dummy(vx, vy, vz, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_alias_v1");
+  results(end_t - start_t, "axpby_alias_v1");
   check(vz);
   return 0;
 }
@@ -137,7 +137,7 @@ axpby_alias_v2(real * restrict vz, real * restrict vx, real * restrict vy)
     dummy(vx, vy, vz, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_alias_v2");
+  results(end_t - start_t, "axpby_alias_v2");
   check(vz);
   return 0;
 }
@@ -160,7 +160,7 @@ axpby_alias_v3(real *vz, real *vx, real *vy)
     dummy(vx, vy, vz, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_alias_v3");
+  results(end_t - start_t, "axpby_alias_v3");
   check(vz);
   return 0;
 }
@@ -185,7 +185,7 @@ axpby_alias_v4(real * restrict vz, real * restrict vx, real * restrict vy)
     dummy(xx, yy, zz, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_alias_v4");
+  results(end_t - start_t, "axpby_alias_v4");
   check(zz);
   return 0;
 }
