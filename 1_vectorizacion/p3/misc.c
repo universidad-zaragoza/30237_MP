@@ -112,8 +112,8 @@ cmpColor(image_t * image_in1, image_t * image_in2, image_t * image_out)
            wall_dif, wall_dif*1e9/(NITER/10*height*width),
            (NITER/10*height*width)/(1e9*wall_dif), (double) 100.0*diff/(3*height*width),
            max_diff, max_idx, max_diff == 0? "OK":"ERROR");
-    printf("        función      Time    ns/px    Gpixels/s  %%diff  max_dif  (max_idx)\n");
-
+    printf("        función      Time    ns/px    Gpixels/s  %%diff  max_dif(max_idx)\n");
+    printf("                     (ms)n");
     return(max_diff);
 }
 //----------------------------------------------------------------------------
@@ -164,9 +164,10 @@ cmpGray(image_t * image_in1, image_t * image_in2, image_t * image_out)
         dummy(image_in1, image_out);
     }
     end_t = get_wall_time(); wall_dif = end_t - start_t;
-    printf("%18s  %5.1f    %4.1f       %4.2f    %5.1f%%  %hhd (%d)\n",
+    printf("%18s  %5.1f    %4.1f       %4.2f    %5.1f%%  %4hhd    (%7d)\n",
            "cmpGray", 1e4*wall_dif/NITER, 1e9*wall_dif/(NITER/10*height*width),
            (NITER*height*width)/(1e9*wall_dif), (double) 100.0*diff/(height*width), max_gray_diff, max_idx);
+    printf("        función      Time    ns/px    Gpixels/s  %%diff  max_dif (max_idx)\n");
     printf("\n");
     return(max_gray_diff);
 }

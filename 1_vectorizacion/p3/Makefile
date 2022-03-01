@@ -19,7 +19,7 @@ REPORT_FLAGS=-fopt-info-vec-optimized
 # $@: file name of the target of the rule
 # http://www.gnu.org/software/make/manual/make.html#Automatic-Variables
 
-all: test_sepia_filter
+all: test_rgb2gray
 
 #
 # dependency to force the creation of $(REPDIR) and $(ASMDIR) directories
@@ -39,10 +39,10 @@ jpeg_handler.o: jpeg_handler.c
 dummy.o: dummy.c
 	$(CC) $(FLAGS)  -c $< -o $@ 
 
-sepia_filter.o: sepia_filter.c | $(REPDIR) $(ASMDIR)
+rgb2gray.o: rgb2gray.c | $(REPDIR) $(ASMDIR)
 	$(CC)  $(FLAGS)  $(REPORT_FLAGS)  -c $<  -o $@ \
-      -Wa,-adghln=$(ASMDIR)/sepia_filter.$(CC).s \
-	  2>&1 | tee $(REPDIR)/sepia_filter.$(CC).report.txt
+      -Wa,-adghln=$(ASMDIR)/rgb2gray.$(CC).s \
+	  2>&1 | tee $(REPDIR)/rgb2gray.$(CC).report.txt
 
 misc.o: misc.c | $(REPDIR) $(ASMDIR)
 	$(CC)  $(FLAGS)  $(REPORT_FLAGS)  -c $<  -o $@ \
@@ -51,11 +51,8 @@ misc.o: misc.c | $(REPDIR) $(ASMDIR)
 
 # $^: names of all the prerequisites
 # http://www.gnu.org/software/make/manual/make.html#Automatic-Variables
-test_sepia_filter: sepia_filter.o misc.o jpeg_handler.o dummy.o test_sepia_filter.c 
+test_rgb2gray: rgb2gray.o misc.o jpeg_handler.o dummy.o test_rgb2gray.c 
 	$(CC) $(FLAGS)  $^  -no-pie -Llib -ljpeg -lm -o $@
 
-image_info: misc.o jpeg_handler.o dummy.o image_info.c
-	$(CC) $(FLAGS)  $^  -Llib -ljpeg -lm -o $@
-
 clean:
-	rm -rf *.o test_sepia_filter
+	rm -rf *.o test_rgb2gray
