@@ -3,32 +3,36 @@
 #include <chrono>
 #include <limits>
 #include <iomanip>
+#include <omp.h>
 
 int main(int argc, char **argv){
-  double nsubintervals = 100000000;
+  int64_t nsubintervals = 100000000000;
   double x, pi, area, subinterval;
   long int i;
   int count1, count2, cr;
 
   if (argc == 2){
-    nsubintervals = atof(argv[1]);
+    nsubintervals = atoi(argv[1]);
   }
-  
-  std::cout << "Nº de procesadores: 1" << std::endl;
-  std::cout << "Nª de threads: 1" << std::endl;
+ 
+  omp_set_num_threads(atoi(argv[2]));
+
+  std::cout << "Nº de procesadores: " << omp_get_num_procs() << std::endl;
+  std::cout << "Nª de threads: " << omp_get_num_threads() << std::endl;
   std::cout << "Resolución de los relojes:" << std::endl;
   std::cout << " - system_clock(std::clock): " << 1e6/CLOCKS_PER_SEC << " us -- " << CLOCKS_PER_SEC/1e6 << " MHz" << std::endl;
 
   std::clock_t t_start1 = std::clock();
   auto t_start2 = std::chrono::high_resolution_clock::now();
 
-  subinterval = 1.0 / nsubintervals;
+  subinterval = 1.0 / (double) nsubintervals;
   area = 0.0;
-  
-  for (i = 0; i < nsubintervals; i++){
-    x = (i-0.5)*subinterval;  
-    area = area + (4.0/(1.0 + x*x));
-  }
+ 
+  #pragma omp parallel for reduction(+: area)
+	  for (i = 0; i < nsubintervals; i++){
+		  x = (i-0.5)*subinterval;  
+		  area = area + (4.0/(1.0 + x*x));
+	  }
 
   pi = subinterval*area;
 
