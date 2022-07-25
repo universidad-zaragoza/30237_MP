@@ -10,12 +10,13 @@ int main(int argc, char **argv){
   double x, pi, area, subinterval;
   long int i;
   int count1, count2, cr;
+  char * pfin;
 
-  if (argc == 2){
-    nsubintervals = atoi(argv[1]);
+  if (argc != 2 ){
+    std::cout << "USO: comando tamano_subintervalo" << std::endl;
+    exit(0);
   }
- 
-  omp_set_num_threads(atoi(argv[2]));
+  nsubintervals = strtoull(argv[1],&pfin, 10);
 
   std::cout << "Nº de procesadores: " << omp_get_num_procs() << std::endl;
   std::cout << "Nª de threads: " << omp_get_num_threads() << std::endl;
@@ -28,11 +29,10 @@ int main(int argc, char **argv){
   subinterval = 1.0 / (double) nsubintervals;
   area = 0.0;
  
-  #pragma omp parallel for reduction(+: area)
-	  for (i = 0; i < nsubintervals; i++){
-		  x = (i-0.5)*subinterval;  
-		  area = area + (4.0/(1.0 + x*x));
-	  }
+  for (i = 0; i < nsubintervals; i++){
+	  x = (i-0.5)*subinterval; 				//S1 
+	  area = area + (4.0/(1.0 + x*x));	 	//S2
+  }
 
   pi = subinterval*area;
 

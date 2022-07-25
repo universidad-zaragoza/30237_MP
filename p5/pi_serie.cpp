@@ -5,15 +5,19 @@
 #include <iomanip>
 
 int main(int argc, char **argv){
-  double nsubintervals = 100000000;
+  int64_t nsubintervals = 100000000;
   double x, pi, area, subinterval;
   long int i;
   int count1, count2, cr;
+  char *pfin;
 
-  if (argc == 2){
-    nsubintervals = atof(argv[1]);
+  if (argc != 2){
+    std::cout << "USO: comando n_subintervalos" << std::endl;
+	exit(0);
   }
-  
+ 
+  nsubintervals = strtoull(argv[1], &pfin, 10);
+
   std::cout << "Nº de procesadores: 1" << std::endl;
   std::cout << "Nª de threads: 1" << std::endl;
   std::cout << "Resolución de los relojes:" << std::endl;

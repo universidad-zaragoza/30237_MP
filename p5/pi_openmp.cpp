@@ -6,17 +6,21 @@
 #include <omp.h>
 
 int main(int argc, char *argv[]){
-  double nsubintervals = 100000000;
+  int64_t nsubintervals = 100000000;
   double x, pi, area, subinterval;
   long int i;
   int count1, count2, cr;
-  
+  char *pfin;  
   int maxnthreadsOMP = omp_get_max_threads();
   int nprocsOMP = omp_get_num_procs();
   
-  if (argc == 2){
-    nsubintervals = atof(argv[1]);
+  if (argc != 3){
+    std::cout << "USO: comando t_subintervalo n_threads" << std::endl; 
+	exit(0);
   }
+
+  nsubintervals = strtoull(argv[1], &pfin, 10);
+  omp_set_num_threads(atoi(argv[2]));
 
   double wtr = omp_get_wtick();
 
