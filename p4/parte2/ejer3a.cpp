@@ -4,8 +4,7 @@
 #include <random>
 #include <math.h>
 
-const unsigned int N = 1000000;
-double A[N], B[N], C[N];
+const int64_t N = 4000000000;
 
 int main(void){
   int nthreads, tnumber;
@@ -14,11 +13,15 @@ int main(void){
   std::mt19937 gen(rd()); // Sembrado de  mersenne_twister_engine con rd()
   std::uniform_real_distribution<> dis(0.0, 100.0); //Configuración del espacio de de generación
 
-  for (int i = 0; i < N; ++i) {
+  double *A = new double[N];
+  double *B = new double[N];
+  double *C = new double[N];
+
+  for (int64_t i = 0; i < N; ++i) {
     A[i] = dis(gen);
   }
   
-  for (int i = 1; i < N; ++i) {
+  for (int64_t i = 1; i < N; ++i) {
     t = A[i];
     B[i] = t + pow(t, 2);
     C[i] = t + 2.0;

@@ -4,11 +4,21 @@
 #include <random>
 #include <math.h>
 
-const unsigned int N = 10000;
-double A[N][N], B[N][N], C[N][N], t[N];
+const unsigned int N = 400000;
 
 int main(void){
   int nthreads, tnumber;
+
+  double *t = new double[N];
+  double **A = new double *[N];
+  double **B = new double *[N];
+  double **C = new double *[N];
+
+  for(int64_t i = 0; i < N; i++){
+	  A[i] = new double[N];
+	  B[i] = new double[N];
+	  C[i] = new double[N];
+  }
 
   std::random_device rd;  // Se utilizará para sembrar el generador de aleatorios
   std::mt19937 gen(rd()); // Sembrado de  mersenne_twister_engine con rd()
