@@ -2,7 +2,7 @@
  *  The output includes several columns:
  *	Loop:		name of the loop
  *	Time(ns): 	time in nanoseconds to run the loop
- *	ps/it: 	    picoseconds per C loop iteration
+ *	ps/el: 	    picoseconds per C loop iteration
  *	Checksum:	checksum calculated when the test has run
  */
 
@@ -20,9 +20,9 @@
 // Los vectores deben caber en la cache para que la velocidad de ejecución
 // no esté limitada por el ancho de banda de memoria principal
 #ifndef LEN 
-    #define LEN     1024
+    #define LEN     (unsigned int) 1024
 #endif
-#define FLOP_IT    (unsigned long int)  3     /* 3 FLOP per iteration */
+#define FLOP_IT    (unsigned long int)  2     /* 2 FLOP per iteration */
 
 // Numero total de FLOP que queremos ejecutar
 // Si es múltiplo de LEN y FLOP_IT se facilitan las cuentas */
@@ -33,16 +33,18 @@
 
 // para ejecuciones más rapidas con SDE */
 // #define FLOP_COUNT  (unsigned long int) 3*4*5*1024*1024
-                       
-#define NTIMES      (unsigned long int) (FLOP_COUNT/(LEN*FLOP_IT))    /* iteraciones bucle externo */
+#ifndef NTIMES
+    #define NTIMES      (unsigned long int) (FLOP_COUNT/(LEN*FLOP_IT))    /* iteraciones bucle externo */
+#endif
                                   
 #define SIMD_ALIGN  64  /* 512 bits (preparado para AVX-512) */
-static real x[LEN] __attribute__((aligned(SIMD_ALIGN)));
-static real y[LEN] __attribute__((aligned(SIMD_ALIGN)));
-static real alpha = 0.4;
-static real beta = 0.6;
+static real a[LEN] __attribute__((aligned(SIMD_ALIGN)));
+static real b[LEN] __attribute__((aligned(SIMD_ALIGN)));
+static real c[LEN] __attribute__((aligned(SIMD_ALIGN)));
 
-int dummy(real a[], real b[], real alpha, real beta);
+static real scalar = 3.0;
+
+int dummy(real a[], real b[], real c[], real scalar);
 
 /* inhibimos el inlining de algunas funciones
  * para que el ensamblador sea más cómodo de leer */
@@ -75,11 +77,18 @@ __attribute__((optimize("no-tree-vectorize")))
 __attribute__ ((noinline))
 int init()
 {
-    for (int j = 0; j < LEN; j++)
+    for (unsigned int j = 0; j < LEN; j++)
     {
-	    x[j] = 2.0;
-	    y[j] = 0.5;
+	    a[j] = 1.0;
+	    b[j] = 2.0;
+	    c[j] = 0.0;
 	}
+    b[69] = 69.0;
+    c[69] = 69.0;
+
+    for (unsigned int j = 0; j < LEN; j++)
+		a[j] = 2.0E0 * a[j];
+
     return 0;
 }
 
@@ -92,10 +101,10 @@ void results(const double wall_time, const char *loop)
             wall_time/(1e-12*NTIMES*LEN) /* ps/el */);
 }
 
-/* axpby functions */
+/* triad functions */
 __attribute__ ((noinline))
 int
-axpby()
+triad()
 {
     double start_t, end_t;
 
@@ -105,19 +114,19 @@ axpby()
     {
         for (unsigned int i = 0; i < LEN; i++)
         {
-            y[i] = alpha*x[i] + beta*y[i];
+            a[i] = b[i] + scalar*c[i];
         }
-        dummy(x, y, alpha, beta);
+        dummy(a, b, c, scalar);
     }
     end_t = get_wall_time();
-    results(end_t - start_t, "axpby");
-    check(y);
+    results(end_t - start_t, "triad");
+    check(a);
     return 0;
 }
 
 __attribute__ ((noinline))
 int
-axpby_intr_SSE()
+triad_intr_SSE()
 {
     double start_t, end_t;
 
@@ -125,50 +134,46 @@ axpby_intr_SSE()
     start_t = get_wall_time();
 
 #if PRECISION==0
-  __m128 vX, vY, valpha, vbeta;
+    __m128 vA, vB, vC, vscalar;
     for (unsigned int nl = 0; nl < NTIMES; nl++)
     {
-        valpha = _mm_set1_ps(alpha);     // valpha = _mm_load1_ps(&alpha);
-        vbeta = _mm_set1_ps(beta);       // vbeta = _mm_load1_ps(&beta);
+        vscalar = _mm_set1_ps(scalar);     // vscalar = _mm_load1_ps(&scalar);
         for (unsigned int i = 0; i < LEN; i+= SSE_LEN)
         {
-            vX = _mm_load_ps(&x[i]);
-            vY = _mm_load_ps(&y[i]);
-            vX = _mm_mul_ps(valpha, vX);
-            vY = _mm_mul_ps(vbeta, vY);
-            vY = _mm_add_ps(vX, vY);
-            _mm_store_ps(&y[i], vY);
+            vB = _mm_load_ps(&b[i]);
+            vC = _mm_load_ps(&c[i]);
+            vC = _mm_mul_ps(vscalar, vC);
+            vA = _mm_add_ps(vB, vC);
+            _mm_store_ps(&a[i], vA);
         }
-        dummy(x, y, alpha, beta);
+        dummy(a, b, c, scalar);
     }
 #else
-    __m128d vX, vY, valpha, vbeta;
+    __m128d vA, vB, vC, vscalar;
     for (unsigned int nl = 0; nl < NTIMES; nl++)
     {
-        valpha = _mm_set1_pd(alpha);     // valpha = _mm_load1_pd(&alpha);
-        vbeta = _mm_set1_pd(beta);     // vbeta = _mm_load1_pd(&beta);
+        vscalar = _mm_set1_pd(scalar);     // vscalar = _mm_load1_ps(&scalar);
         for (unsigned int i = 0; i < LEN; i+= SSE_LEN)
         {
-            vX = _mm_load_pd(&x[i]);
-            vY = _mm_load_pd(&y[i]);
-            vX = _mm_mul_pd(valpha, vX);
-            vY = _mm_mul_pd(vbeta, vY);
-            vY = _mm_add_pd(vX, vY);
-            _mm_store_pd(&y[i], vY);
+            vB = _mm_load_pd(&b[i]);
+            vC = _mm_load_pd(&c[i]);
+            vC = _mm_mul_pd(vscalar, vC);
+            vA = _mm_add_pd(vB, vC);
+            _mm_store_pd(&a[i], vA);
         }
-         dummy(x, y, alpha, beta);
+        dummy(a, b, c, scalar);
     }
 #endif
 
   end_t = get_wall_time();
-  results(end_t - start_t, "axpby_intr_SSE");
-  check(y);
+  results(end_t - start_t, "triad_intr_SSE");
+  check(a);
   return 0;
 }
 
 #if 0
 __attribute__ ((noinline))
-int axpby_intr_AVX()
+int triad_intr_AVX()
 {
   double start_t, end_t;
 
@@ -182,20 +187,20 @@ int axpby_intr_AVX()
 #endif
 
   end_t = get_wall_time();
-  results(end_t - start_t, "axpby_intr_AVX");
-  check(y);
+  results(end_t - start_t, "triad_intr_AVX");
+  check(a);
   return 0;
 }
 #endif
 
 int main()
 {
-  // printf("LEN: %u, NTIMES: %lu\n\n", LEN, NTIMES);
-  printf("                     Time    TPI\n");
+  printf("                     Time    TPE\n");
   printf("              Loop    ns     ps/el     Checksum \n");
-  axpby();
-  // axpby_intr_SSE();
-  // axpby_intr_AVX();
+  triad();
+  // triad_intr_SSE();
+  // triad_intr_AVX();
+  printf("\nLEN: %u, NTIMES: %lu\n\n", LEN, NTIMES);
   exit(0);
 }
 

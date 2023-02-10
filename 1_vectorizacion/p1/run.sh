@@ -1,17 +1,18 @@
 #!/bin/bash
 
 # uso:
-#    ./run.sh -c compilador -f fichero -l vector_len (Kelements) -p precision
+#    ./run.sh -c compilador -f fichero -l vector_len (Kelements) -p precision -s
 # ejemplo
-#    ./run.sh -c gcc  -f axpby.c -l 2  -p 0
+#    ./run.sh -c gcc  -f triad.c -l 2  -p 0
 
 [ -z "$CPU" ] && echo "Hay que inicializar la variable CPU (source ./init_cpuname.sh)" && exit 1;
 [ ! -d "$CPU" ] && echo "No se ha compilado" && exit 1;
 
 # valores por defecto
 comp=gcc
-src="axpby.c"
+src="triad.c"
 vlenk=1   # 2K elementos
+PERF=
 
 # floating point precision, 
 #    p=0 corresponds to single precision
@@ -21,7 +22,7 @@ p=0
 # native version
 native=0
 
-while getopts "f:c:l:p:nh" opt; do
+while getopts "f:c:l:p:nsh" opt; do
   case $opt in
     f) 
       src=$OPTARG
@@ -40,6 +41,10 @@ while getopts "f:c:l:p:nh" opt; do
     n) 
       # echo "especificada ejecución de versión nativa"
       native=1
+      ;;
+    s) 
+      # echo "especificada ejecución bajo perf"
+      PERF="perf stat -d "
       ;;
     h)
       echo "uso:"
@@ -85,9 +90,9 @@ fi
 # loop over the vector/scalar binaries
 for j in "${!version_list[@]}"; do
     binario=${id}.${vlenk}k.${precision}.${version_list[$j]}.${comp}
-    echo -n "ejecutando ${binario} ... "
+    echo -n "ejecutando ${PERF}${binario} ... "
     # ./${binario} > results/${binario}.out   2>&1 && echo OK
-    ./${binario} > results/${binario}.out   2>&1
+    ${PERF} ./${binario} > results/${binario}.out   2>&1
     if [ $? -eq 0 ]; then
         echo OK
     else

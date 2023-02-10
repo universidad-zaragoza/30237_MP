@@ -1,19 +1,20 @@
 #!/bin/bash
 
 # uso:
-#    ./comp.sh -c compilador -f fichero -l vector_len (Kelements) -p precision
+#    ./comp.sh -c compilador -f fichero -l vector_len (Kelements) -p precision -T repeticiones_bucle
 # ejemplo
-#    ./comp.sh -c gcc  -f axpby.c -l 2  -p 0
+#    ./comp.sh -c gcc  -f triad.c -l 2  -p 0
 
 [ -z "$CPU" ] && echo "Hay que inicializar la variable CPU (source ./init_cpuname.sh)" && exit 1;
 #: ${CPU:?"Hay que inicializar la variable CPU (source ./init_cpuid.sh)"}
 
 # valores por defecto
 comp=gcc
-src="axpby.c"
+src="triad.c"
 vlenk=1   # 1K elements
-# vlenk=64000   # 1K elements
+# vlenk=64   # 64K elements
 vlen=$((vlenk*1024))
+DEFINES=
 
 # floating point precision, 
 #    p=0 corresponds to single precision
@@ -23,7 +24,7 @@ p=0
 # native version
 native=0
 
-while getopts "f:c:l:p:nh" opt; do
+while getopts "f:c:l:p:nT:h" opt; do
   case $opt in
     f) 
       # echo "especificado fichero -> $OPTARG"
@@ -35,26 +36,48 @@ while getopts "f:c:l:p:nh" opt; do
       ;;
     l) 
       # echo "especificada longitud de vectores -> $OPTARG"
+      # https://stackoverflow.com/a/18620446/1037634
+      case ${OPTARG} in
+	      *[!0-9]* | '')
+	          echo "La longitud de los vectores debe ser un número entero positivo"
+	          exit
+	          ;;
+	  esac
       vlenk=$OPTARG
-      vlen=$((vlenk*1024))
+      vlen=$((vlenk*1024))U
+      DEFINES="${DEFINES} -DLEN=$vlen"
       ;;
     p) 
       # echo "especificado precision -> $OPTARG"
       p=$OPTARG
+      DEFINES="${DEFINES} -DPRECISION=$p"
       ;;
     n) 
       # echo "especificada compilación nativa"
       native=1
       ;;
+    T) 
+      # echo "especificado NTIMES -> $OPTARG"
+      # https://stackoverflow.com/a/18620446/1037634
+      case ${OPTARG} in
+	      *[!0-9]* | '')
+	          echo "El número de repeticiones debe ser un número entero positivo"
+	          exit
+	          ;;
+	  esac
+      NTIMES=${OPTARG}UL
+      DEFINES="${DEFINES} -DNTIMES=${NTIMES}"
+      ;;
     h)
       echo "uso:"
       echo "$0 -f fichero  -c compilador"
       echo "ejemplo:"
-      echo "$0 -f s000  -c gcc"
+      echo "$0 -c gcc -f triad.c -l 1  -p 0"
       exit
       ;;
     \?)
       echo "opción inválida: -$OPTARG"
+      exit 1
       ;;
     :)
       echo "la opción -$OPTARG requiere un parámetro"
@@ -91,11 +114,14 @@ rm -f *.o
 mkdir -p assembler
 mkdir -p reports
 
-FLAGS="-std=c11 -g -O3 -DPRECISION=$p -DLEN=$vlen -gdwarf-3 -gstrict-dwarf"  # -Ofast -mtune=native
+FLAGS="-std=c11 -g -O3"  # -Ofast -mtune=native
+# FLAGS="-std=c11 -g -O3 -DPRECISION=$p -DLEN=$vlen"  # -Ofast -mtune=native
+# FLAGS="-std=c11 -g -O3 -DPRECISION=$p -DLEN=$vlen -gdwarf-3 -gstrict-dwarf"  # -Ofast -mtune=native
+FLAGS="${FLAGS} ${DEFINES}"
 LIBS="-lm"
 
 case $comp in
-    gcc | gcc-4 | gcc-5 | gcc-6 | gcc-7 | gcc-8 | gcc-9)
+    gcc | gcc-7 | gcc-8 | gcc-9 | gcc-10 | gcc-11 )
         # echo "---------- gcc ---------------------------------------------------------"
         # for gcc > 4.7
         GCC_FLAGS=" -Wall -Wextra -Wshadow"  # GCC_FLAGS="-Q -v"
