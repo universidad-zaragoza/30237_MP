@@ -50,7 +50,6 @@ while getopts "f:c:l:p:nT:h" opt; do
     p) 
       # echo "especificado precision -> $OPTARG"
       p=$OPTARG
-      DEFINES="${DEFINES} -DPRECISION=$p"
       ;;
     n) 
       # echo "especificada compilación nativa"
@@ -114,7 +113,7 @@ rm -f *.o
 mkdir -p assembler
 mkdir -p reports
 
-FLAGS="-std=c11 -g -O3"  # -Ofast -mtune=native
+FLAGS="-std=c11 -g -O3 -DPRECISION=$p"  # -Ofast -mtune=native
 # FLAGS="-std=c11 -g -O3 -DPRECISION=$p -DLEN=$vlen"  # -Ofast -mtune=native
 # FLAGS="-std=c11 -g -O3 -DPRECISION=$p -DLEN=$vlen -gdwarf-3 -gstrict-dwarf"  # -Ofast -mtune=native
 FLAGS="${FLAGS} ${DEFINES}"
