@@ -2,7 +2,7 @@
  *  The output includes several columns:
  *  Loop:       name of the loop
  *  Time(ns):   time in nanoseconds to run the loop
- *  ps/it:      picoseconds per loop iteration (one element)
+ *  ps/el:      picoseconds per vector element
  *  Checksum:   checksum calculated when the test has run
  */
 
@@ -160,7 +160,7 @@ int cond_vec()
 
 int main()
 {
-  printf("                      Time      TPI\n");
+  printf("                      Time      TPE\n");
   printf("         Loop          ns      ps/el      Checksum\n");
   cond_esc();
   cond_vec();

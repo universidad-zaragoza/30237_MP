@@ -2,7 +2,7 @@
     #define PRECISION_GUARD
 
     #ifndef PRECISION
-        #define PRECISION 1
+        #define PRECISION 0
     #endif
 
     #if PRECISION==0
