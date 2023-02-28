@@ -19,7 +19,7 @@ REPORT_FLAGS=-fopt-info-vec-optimized
 # $@: file name of the target of the rule
 # http://www.gnu.org/software/make/manual/make.html#Automatic-Variables
 
-all: test_rgb2gray
+all: test_RGB2YCbCr
 
 #
 # dependency to force the creation of $(REPDIR) and $(ASMDIR) directories
@@ -39,10 +39,10 @@ jpeg_handler.o: jpeg_handler.c
 dummy.o: dummy.c
 	$(CC) $(FLAGS)  -c $< -o $@ 
 
-rgb2gray.o: rgb2gray.c | $(REPDIR) $(ASMDIR)
+RGB2YCbCr.o: RGB2YCbCr.c | $(REPDIR) $(ASMDIR)
 	$(CC)  $(FLAGS)  $(REPORT_FLAGS)  -c $<  -o $@ \
-      -Wa,-adghln=$(ASMDIR)/rgb2gray.$(CC).s \
-	  2>&1 | tee $(REPDIR)/rgb2gray.$(CC).report.txt
+      -Wa,-adghln=$(ASMDIR)/RGB2YCbCr.$(CC).s \
+	  2>&1 | tee $(REPDIR)/RGB2YCbCr.$(CC).report.txt
 
 misc.o: misc.c | $(REPDIR) $(ASMDIR)
 	$(CC)  $(FLAGS)  $(REPORT_FLAGS)  -c $<  -o $@ \
@@ -51,8 +51,8 @@ misc.o: misc.c | $(REPDIR) $(ASMDIR)
 
 # $^: names of all the prerequisites
 # http://www.gnu.org/software/make/manual/make.html#Automatic-Variables
-test_rgb2gray: rgb2gray.o misc.o jpeg_handler.o dummy.o test_rgb2gray.c 
+test_RGB2YCbCr: RGB2YCbCr.o misc.o jpeg_handler.o dummy.o test_RGB2YCbCr.c 
 	$(CC) $(FLAGS)  $^  -no-pie -Llib -ljpeg -lm -o $@
 
 clean:
-	rm -rf *.o test_rgb2gray
+	rm -rf *.o test_RGB2YCbCr

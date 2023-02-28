@@ -1,16 +1,15 @@
 /* Basado en código descargado en:
  * http://www.cim.mcgill.ca/~junaed/libjpeg.php */
 /* Adaptado: Jesús Alastruey Benedé
- * v2.1, 1-marzo-2022 */
+ * v1.1, 13-marzo-2020 */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
-
 #include "jpeg_handler.h"
 #include "include/jpeglib.h"
-#include "rgb2gray.h"
+#include "RGB2YCbCr.h"
 #include "misc.h"
 
 //----------------------------------------------------------------------------
@@ -48,7 +47,8 @@ static struct option_help {
   { "--output_filename", "-o",
     "output filename" },
   { "--conversion_type", "-c",
-    "0: rgb2gray_roundf0, 1: rgb2gray_roundf1, 2: rgb2gray_cast0, 3: rgb2gray_cast1, 4: rgb2gray_cast2, 6: rgb2gray_SOA0, 7: rgb2gray_SOA1, 8: rgb2gray_block [default = 0]" },
+    "0: RGB2YCbCr_roundf0, 1: RGB2YCbCr_roundf1, 2: RGB2YCbCr_cast0, 3: RGB2YCbCr_cast1, 4: RGB2YCbCr_SOA0, 5: RGB2YCbCr_SOA1, 6: RGB2YCbCr_block, 7: YCbCr2RGB, [default = 0]" },
+//    "0: YCbCr2rgb, 1: YCbCr2gray, 2: rgb2gray, 3: rgb2YCbCr [default = 0]" },
   { "--reference", "-r",
     "write reference image [default = no]" },
   { "--fast", "-f",
@@ -89,7 +89,7 @@ remove_four(char *dst, const char *filename)
 }
 //----------------------------------------------------------------------------
 int
-check_conversion_gray(char *base_filename, char *id_string,
+check_conversion_color(char *base_filename, char *id_string,
                        image_t *image_out)
 {
     /* structs to store raw, uncompressed images and its properties (size, channels ...) */
@@ -102,33 +102,33 @@ check_conversion_gray(char *base_filename, char *id_string,
 
     /* ********************************* */
     /* allocate memory to hold reference and diff images */
-    image_ref.pixels = (unsigned char*) malloc(image_out->width*image_out->height);
+    image_ref.pixels = (unsigned char*) malloc(3*image_out->width*image_out->height);
     image_ref.width  = image_out->width;
     image_ref.height = image_out->height;    
 
-    image_dif.pixels = (unsigned char*) malloc(image_out->width*image_out->height);
+    image_dif.pixels = (unsigned char*) malloc(3*image_out->width*image_out->height);
     image_dif.width  = image_out->width;
     image_dif.height = image_out->height;
 
     /* read reference image */
-    snprintf(ref_filename, sizeof(ref_filename), "%s_gray_ref.ppm", base_filename);
-    read_PGM(ref_filename, &image_ref);
+    snprintf(ref_filename, sizeof(ref_filename), "%s_YbCbCr_ref.ppm", base_filename);
+    read_PPM(ref_filename, &image_ref, 6);
 
-    n = cmpGray(image_out, &image_ref, &image_dif);
+    n = cmpColor(image_out, &image_ref, &image_dif);
     if (n > 0)
     {
         if (verbose)
         {
-            /* write diff pixel values to pgm image */
-            snprintf(dif_filename, sizeof(dif_filename), "%s_%s_dif.pgm", base_filename, id_string);
-            write_PGM(dif_filename, &image_dif);
+            /* write diff pixel values to ppm image */
+            snprintf(dif_filename, sizeof(dif_filename), "%s_%s_dif.ppm", base_filename, id_string);
+            write_PPM(dif_filename, &image_dif, 6);
         }
 
         /* scale dif image to magnify errors */
         // scale_gray(image_dif, image_out);
         snprintf(dif_filename, sizeof(dif_filename), "%s_%s_dif.jpg", base_filename, id_string);
         // n = write_jpeg_file(dif_filename, image_out);
-        image_dif.color_space = JCS_GRAYSCALE;
+        image_dif.color_space = JCS_YCbCr;
         n = write_jpeg_file(dif_filename, &image_dif);
         if (n < 0) exit(-1);
     }
@@ -137,16 +137,16 @@ check_conversion_gray(char *base_filename, char *id_string,
 //----------------------------------------------------------------------------
 
 static int
-test_convert_gray()
+test_convert_RGB2YCbCr()
 {
     /* structs to store raw, uncompressed images and its properties (size, channels ...) */
-    image_t image_RGB, image_gray;
+    image_t image_RGB_in, image_YCbCr;
     int n;
     char basename[STRLEN] = { 0 };
     char tmp_filename[STRLEN+16] = { 0 };
 
     /* open jpeg image */
-    n = read_jpeg_file(in_filename, &image_RGB);
+    n = read_jpeg_file(in_filename, &image_RGB_in);
     if (n < 0) exit(-1);
 
     printf("                     Time\n");
@@ -155,71 +155,73 @@ test_convert_gray()
     /* remove the last four letters of in_filename */
     remove_four(basename, in_filename);
 
-    /* dump pixel values to file */
+    /* dump RGB pixel values to file */
     if (verbose)
     {
-        snprintf(tmp_filename, sizeof(tmp_filename), "%s_RGB.ppm", basename);
-        write_PGM(tmp_filename, &image_RGB);
+        snprintf(tmp_filename, sizeof(tmp_filename), "%s_RGB_in.ppm", basename);
+        write_PPM(tmp_filename, &image_RGB_in, 6);
     }
 
     /* ********************************* */
-    /* RGB -> gray */
+    /* RGB -> YCbCr */
     /* allocate memory to hold the converted image */
-    image_gray.pixels = (unsigned char*) malloc(image_RGB.width*image_RGB.height);
+    image_YCbCr.pixels = (unsigned char*) malloc(3*image_RGB_in.width*image_RGB_in.height);
 
-    /* convert from RGB to gray */
+    /* convert from RGB to YCbCr */
     switch (conv_type)
     {
-        case 0: rgb2gray_roundf0(&image_RGB, &image_gray);
+        case 0: RGB2YCbCr_roundf0(&image_RGB_in, &image_YCbCr);
                 break;
-        case 1: rgb2gray_roundf1(&image_RGB, &image_gray);
+        case 1: RGB2YCbCr_roundf1(&image_RGB_in, &image_YCbCr);
                 break;
-        case 2: rgb2gray_cast0(&image_RGB, &image_gray);
+        case 2: RGB2YCbCr_cast0(&image_RGB_in, &image_YCbCr);
                 break;
-        case 3: rgb2gray_cast1(&image_RGB, &image_gray);
+        case 3: RGB2YCbCr_cast1(&image_RGB_in, &image_YCbCr);
                 break;
-        case 4: rgb2gray_cast2(&image_RGB, &image_gray);
+        case 4: RGB2YCbCr_cast2(&image_RGB_in, &image_YCbCr);
                 break;
-        case 5: rgb2gray_cast_esc(&image_RGB, &image_gray);
+        case 5: RGB2YCbCr_cast_esc(&image_RGB_in, &image_YCbCr);
                 break;
-        case 6: rgb2gray_SOA0(&image_RGB, &image_gray);
+        case 6: RGB2YCbCr_SOA0(&image_RGB_in, &image_YCbCr);
                 break;
-        case 7: rgb2gray_SOA1(&image_RGB, &image_gray);
+        case 7: RGB2YCbCr_SOA1(&image_RGB_in, &image_YCbCr);
                 break;
-        case 8: rgb2gray_block(&image_RGB, &image_gray);
+        case 8: RGB2YCbCr_block(&image_RGB_in, &image_YCbCr);
                 break;
-        case 9: rgb2gray_roundf0(&image_RGB, &image_gray);
-                rgb2gray_roundf1(&image_RGB, &image_gray);
-                rgb2gray_cast0(&image_RGB, &image_gray);
-                rgb2gray_cast1(&image_RGB, &image_gray);
-                rgb2gray_cast2(&image_RGB, &image_gray);
-                rgb2gray_cast_esc(&image_RGB, &image_gray);
-                rgb2gray_SOA0(&image_RGB, &image_gray);
-                rgb2gray_SOA1(&image_RGB, &image_gray);
-                rgb2gray_block(&image_RGB, &image_gray);
+        case 9: RGB2YCbCr_roundf0(&image_RGB_in, &image_YCbCr);
+                RGB2YCbCr_roundf1(&image_RGB_in, &image_YCbCr);
+                RGB2YCbCr_cast0(&image_RGB_in, &image_YCbCr);
+                RGB2YCbCr_cast1(&image_RGB_in, &image_YCbCr);
+                RGB2YCbCr_cast2(&image_RGB_in, &image_YCbCr);
+                RGB2YCbCr_cast_esc(&image_RGB_in, &image_YCbCr);
+                RGB2YCbCr_SOA0(&image_RGB_in, &image_YCbCr);
+                RGB2YCbCr_SOA1(&image_RGB_in, &image_YCbCr);
+                RGB2YCbCr_block(&image_RGB_in, &image_YCbCr);
                 break;
-        default: rgb2gray_roundf0(&image_RGB, &image_gray);
+        case 10: YCbCr2RGB_conversion(&image_YCbCr, &image_RGB_in);
+                break;
+        default: RGB2YCbCr_roundf0(&image_RGB_in, &image_YCbCr);
     }
 
-    /* write gray image to file */
-    snprintf(tmp_filename, sizeof(tmp_filename), "%s_gray.jpg", basename);
-    n = write_jpeg_file(tmp_filename, &image_gray);
+    /* write YCbCr image to file */
+    snprintf(tmp_filename, sizeof(tmp_filename), "%s_YCbCr.jpg", basename);
+    n = write_jpeg_file(tmp_filename, &image_YCbCr);
     if (n < 0) exit(-1);
 
     if (reference)
     {
         /* reference image written in jpg and ppm formats */
-        snprintf(tmp_filename, sizeof(tmp_filename), "%s_gray_ref.jpg", basename);
-        n = write_jpeg_file(tmp_filename, &image_gray);
+        snprintf(tmp_filename, sizeof(tmp_filename), "%s_YbCbCr_ref.jpg", basename);
+        n = write_jpeg_file(tmp_filename, &image_YCbCr);
 
         /* comparison of images in jpg format does not work */
-        snprintf(tmp_filename, sizeof(tmp_filename), "%s_gray_ref.ppm", basename);
-        write_PGM(tmp_filename, &image_gray);
+        snprintf(tmp_filename, sizeof(tmp_filename), "%s_YbCbCr_ref.ppm", basename);
+        write_PPM(tmp_filename, &image_YCbCr, 6);
     }
     else
     {
         /* verify conversion */
-        if (conv_type != 9) check_conversion_gray(basename, "gray", &image_gray);
+        if (conv_type != 9) check_conversion_color(basename, "YCbCr", &image_YCbCr);
     }   
     return 0;
 }
@@ -280,6 +282,6 @@ main(int argc, char *argv[])
         }
     }
 
-    test_convert_gray();
+    test_convert_RGB2YCbCr();
     exit(0);
 }
