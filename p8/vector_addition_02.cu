@@ -1,4 +1,4 @@
-#define N 10000000000
+#define N 1024*1024*1024 
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -37,13 +37,28 @@ int main(){
     if (cudaerr != cudaSuccess)
 		printf("cudaMalloc failed with error \"%s\".\n", cudaGetErrorString(cudaerr));
 
-    // Main function
+	// Copy source data from host to device
+	cudaerr = cudaMemcpy (a, d_a, sizeof(float)*N, cudaMemcpyHostToDevice);
+    if (cudaerr != cudaSuccess)
+		printf("Copying data host to device failed with error \"%s\".\n", cudaGetErrorString(cudaerr));
+	
+	cudaerr = cudaMemcpy (b, d_b, sizeof(float)*N, cudaMemcpyHostToDevice);
+    if (cudaerr != cudaSuccess)
+		printf("Copying data host to device failed with error \"%s\".\n", cudaGetErrorString(cudaerr));
+    
+	// Main function
     vector_add<<<1,1>>>(out, a, b, N);
+
+	// Copy result data from device to host 
+	cudaerr = cudaMemcpy (out, d_out, sizeof(float)*N, cudaMemcpyDeviceToHost);
+    if (cudaerr != cudaSuccess)
+		printf("Copying data Device to host failed with error \"%s\".\n", cudaGetErrorString(cudaerr));
 
 	cudaerr = cudaDeviceSynchronize();
     if (cudaerr != cudaSuccess)
 		printf("kernel launch failed with error \"%s\".\n", cudaGetErrorString(cudaerr));
 
+	//Free memory in the device	
 	cudaFree(d_a);
 	cudaFree(d_b);
 	cudaFree(d_out);
