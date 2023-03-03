@@ -47,7 +47,7 @@ int main(){
 		printf("Copying data host to device failed with error \"%s\".\n", cudaGetErrorString(cudaerr));
     
 	// Main function
-    vector_add<<<1,1>>>(out, a, b, N);
+    vector_add<<<1,1>>>(d_out, d_a, d_b, N);
 
 	// Copy result data from device to host 
 	cudaerr = cudaMemcpy (out, d_out, sizeof(float)*N, cudaMemcpyDeviceToHost);
