@@ -1,4 +1,4 @@
-#define N 10000000000
+#define N 1024*1024*1024
 
 #include <stdlib.h>
 #include <stdio.h>
