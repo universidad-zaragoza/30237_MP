@@ -12,8 +12,6 @@ __global__ void vector_add(float *out, float *a, float *b, long int n) {
 int main(){
     float *a, *b, *out; 
 
-    printf("%d\n", sizeof(long int));
-
     // Allocate memory
     a   = (float*)malloc(sizeof(float) * N);
     b   = (float*)malloc(sizeof(float) * N);

@@ -13,8 +13,6 @@ int main(){
     float *a, *b, *out; 
 	cudaError_t cudaerr;
 
-    printf("%d\n", sizeof(long int));
-
     // Allocate memory in host memory (CPU)
     a   = (float*)malloc(sizeof(float) * N);
     b   = (float*)malloc(sizeof(float) * N);
