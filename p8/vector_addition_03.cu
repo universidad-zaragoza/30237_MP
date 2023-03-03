@@ -4,9 +4,9 @@
 #include <stdio.h>
 
 __global__ void vector_add(float *out, float *a, float *b, long int n) {
-    for(long int i = 0; i < n; i++){
-        out[i] = a[i] + b[i];
-    }
+    long int tid = blockIdx.x * blockDim.x + threadIdx.x; 
+
+	out[tid] = a[tid] + b[tid];
 }
 
 int main(){
@@ -47,7 +47,9 @@ int main(){
 		printf("Copying data host to device failed with error \"%s\".\n", cudaGetErrorString(cudaerr));
     
 	// Main function
-    vector_add<<<1,1>>>(d_out, d_a, d_b, N);
+    long int block_size = 512;
+    long int grid_size = (N / block_size);
+    vector_add<<<grid_size,block_size>>>(d_out, d_a, d_b, N);
 
 	// Copy result data from device to host 
 	cudaerr = cudaMemcpy (out, d_out, sizeof(float)*N, cudaMemcpyDeviceToHost);
