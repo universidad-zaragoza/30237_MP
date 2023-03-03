@@ -38,11 +38,11 @@ int main(){
 		printf("cudaMalloc failed with error \"%s\".\n", cudaGetErrorString(cudaerr));
 
 	// Copy source data from host to device
-	cudaerr = cudaMemcpy (a, d_a, sizeof(float)*N, cudaMemcpyHostToDevice);
+	cudaerr = cudaMemcpy (d_a, a, sizeof(float)*N, cudaMemcpyHostToDevice);
     if (cudaerr != cudaSuccess)
 		printf("Copying data host to device failed with error \"%s\".\n", cudaGetErrorString(cudaerr));
 	
-	cudaerr = cudaMemcpy (b, d_b, sizeof(float)*N, cudaMemcpyHostToDevice);
+	cudaerr = cudaMemcpy (d_b, b, sizeof(float)*N, cudaMemcpyHostToDevice);
     if (cudaerr != cudaSuccess)
 		printf("Copying data host to device failed with error \"%s\".\n", cudaGetErrorString(cudaerr));
     
