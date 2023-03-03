@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void vector_add(float *out, float *a, float *b, long int n) {
+__global__ void vector_add(float *out, float *a, float *b, long int n) {
     for(long int i = 0; i < n; i++){
         out[i] = a[i] + b[i];
     }
@@ -25,6 +25,10 @@ int main(){
     }
 
     // Main function
-    vector_add(out, a, b, N);
-}
+    vector_add<<<1,1>>>(out, a, b, N);
 
+	cudaError_t cudaerr = cudaDeviceSynchronize();
+    if (cudaerr != cudaSuccess)
+		printf("kernel launch failed with error \"%s\".\n", cudaGetErrorString(cudaerr));
+
+}
