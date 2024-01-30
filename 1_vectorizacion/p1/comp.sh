@@ -10,7 +10,7 @@
 
 # valores por defecto
 comp=gcc
-src="triad.c"
+src="scale_shift.c"
 vlenk=1   # 1K elements
 # vlenk=64   # 64K elements
 vlen=$((vlenk*1024))
@@ -71,7 +71,7 @@ while getopts "f:c:l:p:nT:h" opt; do
       echo "uso:"
       echo "$0 -f fichero  -c compilador"
       echo "ejemplo:"
-      echo "$0 -c gcc -f triad.c -l 1  -p 0"
+      echo "$0 -c gcc -f scale_shift.c -l 1  -p 0"
       exit
       ;;
     \?)
@@ -120,7 +120,7 @@ FLAGS="${FLAGS} ${DEFINES}"
 LIBS="-lm"
 
 case $comp in
-    gcc | gcc-7 | gcc-8 | gcc-9 | gcc-10 | gcc-11 )
+    gcc | gcc-9 | gcc-10 | gcc-11 | gcc-12)
         # echo "---------- gcc ---------------------------------------------------------"
         # for gcc > 4.7
         GCC_FLAGS=" -Wall -Wextra -Wshadow"  # GCC_FLAGS="-Q -v"
