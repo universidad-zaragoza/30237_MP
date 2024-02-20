@@ -55,7 +55,9 @@ get_wall_time()
 
 /* inhibimos vectorización en esta función
  * para que los informes de compilación sean más cómodos de leer */
-__attribute__((optimize("no-tree-vectorize")))
+#ifndef __INTEL_LLVM_COMPILER
+   __attribute__((optimize("no-tree-vectorize")))
+#endif
 __attribute__ ((noinline))
 int 
 set1d(real arr[LEN], real value, int stride)
@@ -78,7 +80,9 @@ set1d(real arr[LEN], real value, int stride)
 
 /* inhibimos vectorización en esta función
  * para que los informes de compilación sean más cómodos de leer */
-__attribute__((optimize("no-tree-vectorize")))
+#ifndef __INTEL_LLVM_COMPILER
+   __attribute__((optimize("no-tree-vectorize")))
+#endif
 void check(real arr[LEN])
 {
   real sum = 0;
@@ -88,7 +92,9 @@ void check(real arr[LEN])
   printf("%f \n", sum);
 }
 
-__attribute__((optimize("no-tree-vectorize")))
+#ifndef __INTEL_LLVM_COMPILER
+   __attribute__((optimize("no-tree-vectorize")))
+#endif
 __attribute__ ((noinline))
 int init()
 {
@@ -111,7 +117,9 @@ void results(double wall_time, char *loop)
           wall_time/(1e-12*NTIMES*LEN) /* ps/element */);
 }
 
-__attribute__((optimize("no-tree-vectorize")))
+#ifndef __INTEL_LLVM_COMPILER
+   __attribute__((optimize("no-tree-vectorize")))
+#endif
 int cond_esc()
 {
   double start_t, end_t;
@@ -120,6 +128,9 @@ int cond_esc()
   start_t = get_wall_time();
   for (unsigned int nl = 0; nl < NTIMES; nl++)
   {
+#ifdef __INTEL_LLVM_COMPILER
+  #pragma novector
+#endif
     for (unsigned int i = 0; i < LEN; i++)
     {
       if (y[i] < umbral)
@@ -160,8 +171,8 @@ int cond_vec()
 
 int main()
 {
-  printf("                      Time      TPE\n");
-  printf("         Loop          ns      ps/el      Checksum\n");
+  printf("                     Time       TPE\n");
+  printf("             Loop     ns       ps/el     Checksum\n");
   cond_esc();
   cond_vec();
   return 0;

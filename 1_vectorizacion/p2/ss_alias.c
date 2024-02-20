@@ -41,13 +41,12 @@
 
 /* LEN+2 para evitar problemas con las inicializaciones */
 /* LEN+1 porque hay recorridos que se inician en el elemento 1 */
-static real a[LEN+2] __attribute__((aligned(SIMD_ALIGN)));
-static real b[LEN+2] __attribute__((aligned(SIMD_ALIGN)));
-static real c[LEN+2] __attribute__((aligned(SIMD_ALIGN)));
+static real x[LEN+2] __attribute__((aligned(SIMD_ALIGN)));
+static real y[LEN+2] __attribute__((aligned(SIMD_ALIGN)));
+static real alpha = 0.9;
+static real beta = 0.5;
 
-static real scalar = 0.03;
-
-int dummy(real a[], real b[], real c[], real scalar);
+int dummy(real x[], real alpha, real beta);
 
 /* inhibimos el inlining de algunas funciones
  * para que el ensamblador sea más cómodo de leer */
@@ -66,33 +65,36 @@ get_wall_time()
 
 /* inhibimos vectorización en esta función
  * para que los informes de compilación sean más cómodos de leer */
-__attribute__((optimize("no-tree-vectorize")))
+#ifndef __INTEL_LLVM_COMPILER
+   __attribute__((optimize("no-tree-vectorize")))
+#endif
 void check(const real arr[LEN])
 {
   real sum = 0;
+#ifdef __INTEL_LLVM_COMPILER
+  #pragma novector
+#endif
   for (unsigned int i = 0; i < LEN; i++)
     sum += arr[i];
 
   printf("%f \n", sum);
 }
 
-__attribute__((optimize("no-tree-vectorize")))
+#ifndef __INTEL_LLVM_COMPILER
+   __attribute__((optimize("no-tree-vectorize")))
+#endif
 __attribute__ ((noinline))
-int init(real *va, real *vb, real *vc)
+int init(real *vx, real *vy)
 {
+#ifdef __INTEL_LLVM_COMPILER
+  #pragma novector
+#endif
     for (unsigned int j = 0; j < LEN+1; j++)
     {
-        va[j] = 1.0;
-        vb[j] = 2.0;
-        vc[j] = 0.0;
+        vx[j] = 2.0;
+        vy[j] = 1.0;
     }
-    vb[69] = 69.0;
-    vc[69] = 69.0;
-
-    for (unsigned int j = 0; j < LEN; j++)
-        va[j] = 2.0E0 * va[j];
-
-  return 0;
+    return 0;
 }
 
 __attribute__ ((noinline))
@@ -104,59 +106,59 @@ void results(const double wall_time, const char *loop)
             wall_time/(1e-12*NTIMES*LEN) /* ps/el */);
 }
 
-/* triad functions */
+/* scale and shift functions */
 __attribute__ ((noinline))
 int
-triad_alias_v1(real *va, real *vb, real *vc)
+ss_alias_v1(real *vy, real *vx)
 {
   double start_t, end_t;
 
-  init(va, vb, vc);
+  init(vx, vy);
   start_t = get_wall_time();
 
   for (unsigned int nl = 0; nl < NTIMES; nl++)
   {
     for (unsigned int i = 0; i < LEN; i++)
     {
-      va[i] = vb[i] + scalar*vc[i];
+        vy[i] = alpha*vx[i] + beta;
     }
-    dummy(va, vb, vc, scalar);
+    dummy(vy, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "triad_alias_v1");
-  check(vc);
+  results(end_t - start_t, "ss_alias_v1");
+  check(vy);
   return 0;
 }
 
 __attribute__ ((noinline))
 int
-triad_alias_v2(real * restrict va, real * restrict vb, real * restrict vc)
+ss_alias_v2(real * restrict vy, real * restrict vx)
 {
   double start_t, end_t;
 
-  init(va, vb, vc);
+  init(vx, vy);
   start_t = get_wall_time();
 
   for (unsigned int nl = 0; nl < NTIMES; nl++)
   {
     for (unsigned int i = 0; i < LEN; i++)
     {
-      va[i] = vb[i] + scalar*vc[i];
+        vy[i] = alpha*vx[i] + beta;
     }
-    dummy(va, vb, vc, scalar);
+    dummy(vy, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "triad_alias_v2");
-  check(va);
+  results(end_t - start_t, "ss_alias_v2");
+  check(vy);
   return 0;
 }
 
 int
-triad_alias_v3(real *va, real *vb, real *vc)
+ss_alias_v3(real *vy, real *vx)
 {
   double start_t, end_t;
 
-  init(va, vb, vc);
+  init(vx, vy);
   start_t = get_wall_time();
 
   for (unsigned int nl = 0; nl < NTIMES; nl++)
@@ -164,59 +166,59 @@ triad_alias_v3(real *va, real *vb, real *vc)
     #pragma GCC ivdep
     for (unsigned int i = 0; i < LEN; i++)
     {
-      va[i] = vb[i] + scalar*vc[i];
+      vy[i] = alpha*vx[i] + beta;
     }
-    dummy(va, vb, vc, scalar);
+    dummy(vy, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "triad_alias_v3");
-  check(va);
+  results(end_t - start_t, "ss_alias_v3");
+  check(vy);
   return 0;
 }
 
-int triad_alias_v4(real * restrict va, real * restrict vb, real * restrict vc)
+int
+ss_alias_v4(real * restrict vy, real * restrict vx)
 {
-  real *aa = __builtin_assume_aligned(va, SIMD_ALIGN);
-  real *bb = __builtin_assume_aligned(vb, SIMD_ALIGN);
-  real *cc = __builtin_assume_aligned(vc, SIMD_ALIGN);
+  real *xx = __builtin_assume_aligned(vx, SIMD_ALIGN);
+  real *yy = __builtin_assume_aligned(vy, SIMD_ALIGN);
   double start_t, end_t;
 
-  init(aa, bb, cc);
+  init(xx, yy);
   start_t = get_wall_time();
 
   for (unsigned int nl = 0; nl < NTIMES; nl++)
   {
     for (unsigned int i = 0; i < LEN; i++)
     {
-      aa[i] = bb[i] + scalar*cc[i];
+      yy[i] = alpha*xx[i] + beta;
     }
-    dummy(aa, bb, cc, scalar);
+    dummy(yy, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "triad_alias_v4");
-  check(va);
+  results(end_t - start_t, "ss_alias_v4");
+  check(yy);
   return 0;
 }
 
 /* variables globales */
-int triad()
+int scale_and_shift()
 {
   double start_t, end_t;
 
-  init(a, b, c);
+  init(x, y);
   start_t = get_wall_time();
 
   for (unsigned int nl = 0; nl < NTIMES; nl++)
   {
     for (unsigned int i = 0; i < LEN; i++)
     {
-      a[i] = b[i] + scalar*c[i];
+      y[i] = alpha*x[i] + beta;
     }
-    dummy(a, b, c, scalar);
+        dummy(y, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "triad");
-  check(a);
+  results(end_t - start_t, "scale_and_shift");
+  check(y);
   return 0;
 }
 
@@ -224,35 +226,32 @@ int main()
 {
   //posix_memalign((void **) &x, SIMD_ALIGN, (LEN+1)*sizeof(real));
   //posix_memalign((void **) &y, SIMD_ALIGN, (LEN+1)*sizeof(real));
-  //posix_memalign((void **) &z, SIMD_ALIGN, (LEN+1)*sizeof(real));
   //x = aligned_alloc(SIMD_ALIGN, (LEN+1)*sizeof(real));
   //y = aligned_alloc(SIMD_ALIGN, (LEN+1)*sizeof(real));
-  //z = aligned_alloc(SIMD_ALIGN, (LEN+1)*sizeof(real));
     
-  /* a[] = b[] + scalar*c[] */
+  /* y[] = alpha*x[] + beta */
 
-
-  printf("                     Time       TPI\n");
+  printf("                     Time       TPE\n");
   printf("             Loop     ns       ps/el     Checksum\n");
 
-  triad_alias_v1(&c[1], b, c);      /* solapamiento y dependencia */
-  triad_alias_v1(c, &b[1], &c[1]);  /* solapamiento, no dependencia */
-  triad_alias_v1(c, b, c);          /* solapamiento, no dependencia */
-  triad_alias_v1(a, b, c);          /* no solapamiento, no dependencia */
+  ss_alias_v1(&y[1], y);      /* solapamiento y dependencia */
+  ss_alias_v1(y, &y[1]);      /* solapamiento, no dependencia */
+  ss_alias_v1(y, y);          /* solapamiento, no dependencia */
+  ss_alias_v1(y, x);          /* no solapamiento, no dependencia */
 
   /* restrict en parametros */
-  triad_alias_v2(&a[1], &b[1], &c[1]);  /* no solapamiento, no dependencia */
-  triad_alias_v2(a, b, c);              /* no solapamiento, no dependencia */
+  ss_alias_v2(&y[1], &x[1]);    /* no solapamiento, no dependencia */
+  ss_alias_v2(y, x);            /* no solapamiento, no dependencia */
 
   /* #pragma GCC ivdep */
-  triad_alias_v3(&a[1], &b[1], &c[1]);  /* no solapamiento, no dependencia */
-  triad_alias_v3(a, b, c);              /* no solapamiento, no dependencia */
+  ss_alias_v3(&y[1], &x[1]);    /* no solapamiento, no dependencia */
+  ss_alias_v3(y, x);            /* no solapamiento, no dependencia */
 
   /* restrict en parametros + __builtin_assume_aligned() */
-  triad_alias_v4(a, b, c);             /* no solapamiento, no dependencia */
+  ss_alias_v4(y, x);             /* no solapamiento, no dependencia */
 
-  /* triad p1 */
-  triad();                             /* solapamiento, no dependencia */
+  /* scale_and_shift variables globales */
+  scale_and_shift();                             /* solapamiento, no dependencia */
 
   return 0;
 }

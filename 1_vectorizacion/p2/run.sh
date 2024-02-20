@@ -13,7 +13,7 @@ comp=gcc
 # flag march
 arch=avx2
 #arch=native
-src="axpby_align.c"
+src="ss_align.c"
 vlenk=1   # 1K elementos
 
 # floating point precision, 

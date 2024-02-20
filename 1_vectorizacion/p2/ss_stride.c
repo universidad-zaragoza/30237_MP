@@ -39,13 +39,12 @@
 
 #define SIMD_ALIGN  64  /* 512 bits (preparado para AVX-512) */
 
-static real a[2*LEN] __attribute__((aligned(SIMD_ALIGN)));
-static real b[2*LEN] __attribute__((aligned(SIMD_ALIGN)));
-static real c[2*LEN] __attribute__((aligned(SIMD_ALIGN)));
+/* 2*LEN porque se acceden elementos no consecutivos */
+static real x[2*LEN] __attribute__((aligned(SIMD_ALIGN)));
+static real alpha = 0.9;
+static real beta = 0.5;
 
-static real scalar = 3.0;
-
-int dummy(real a[], real b[], real c[], real scalar);
+int dummy(real a[], real alpha, real beta);
 
 /* inhibimos el inlining de algunas funciones
  * para que el ensamblador sea más cómodo de leer */
@@ -64,14 +63,14 @@ get_wall_time()
 
 /* inhibimos vectorización en esta función
  * para que los informes de compilación sean más cómodos de leer */
-#ifndef __INTEL_COMPILER
+#ifndef __INTEL_LLVM_COMPILER
    __attribute__((optimize("no-tree-vectorize")))
 #endif
 __attribute__ ((noinline))
 void check(real arr[LEN])
 {
   real sum = 0;
-#ifdef __INTEL_COMPILER
+#ifdef __INTEL_LLVM_COMPILER
   #pragma novector
 #endif
   for (unsigned int i = 0; i < LEN; i++)
@@ -80,20 +79,18 @@ void check(real arr[LEN])
   printf("%f \n", sum);
 }
 
-#ifndef __INTEL_COMPILER
+#ifndef __INTEL_LLVM_COMPILER
   __attribute__((optimize("no-tree-vectorize")))
 #endif
 __attribute__ ((noinline))
 int init()
 {
-#ifdef __INTEL_COMPILER
+#ifdef __INTEL_LLVM_COMPILER
   #pragma novector
 #endif
   for (unsigned int j = 0; j < LEN; j++)
   {
-    a[j] = 1.0;
-    b[j] = 2.0;
-    c[j] = 0.0;
+    x[j] = 1.0;
   }
   return 0;
 }
@@ -108,10 +105,10 @@ void results(const double wall_time, const char *loop)
 }
 
 /* funciones de cálculo */
-#ifndef __INTEL_COMPILER
+#ifndef __INTEL_LLVM_COMPILER
   __attribute__((optimize("no-tree-vectorize")))
 #endif
-int triad_stride_esc()
+int ss_stride_esc()
 {
   double start_t, end_t;
 
@@ -119,22 +116,22 @@ int triad_stride_esc()
   start_t = get_wall_time();
   for (unsigned int nl = 0; nl < NTIMES; nl++)
  {
-#ifdef __INTEL_COMPILER
+#ifdef __INTEL_LLVM_COMPILER
   #pragma novector
 #endif
     for (unsigned int i = 0; i < 2*LEN; i+=2)
     {
-      a[i] = b[i] + scalar*c[i];
+      x[i] = alpha*x[i] + beta;
     }
-    dummy(a, b, c, scalar);
+    dummy(x, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "triad_stride_esc");
-  check(a);
+  results(end_t - start_t, "ss_stride_esc");
+  check(x);
   return 0;
 }
 
-int triad_stride_vec()
+int ss_stride_vec()
 {
   double start_t, end_t;
 
@@ -144,22 +141,20 @@ int triad_stride_vec()
   {
     for (unsigned int i = 0; i < 2*LEN; i+=2)
     {
-      a[i] = b[i] + scalar*c[i];
+        x[i] = alpha*x[i] + beta;
     }
-    dummy(a, b, c, scalar);
+    dummy(x, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "triad_stride_vec");
-  check(a);
+  results(end_t - start_t, "ss_stride_vec");
+  check(x);
   return 0;
 }
 
 #if 0
-int triad_stride_v2(real * restrict va, real * restrict vb, real * restrict vc)
+int ss_stride_v2(real * restrict vx)
 {
-  real *aa = __builtin_assume_aligned(va, SIMD_ALIGN);
-  real *bb = __builtin_assume_aligned(vb, SIMD_ALIGN);
-  real *cc = __builtin_assume_aligned(vc, SIMD_ALIGN);
+  real *xx = __builtin_assume_aligned(va, SIMD_ALIGN);
   double start_t, end_t;
 
   init();
@@ -169,24 +164,24 @@ int triad_stride_v2(real * restrict va, real * restrict vb, real * restrict vc)
   {
     for (unsigned int i = 0; i < 2*LEN; i+=2)
     {
-      aa[i] = bb[i] + scalar*cc[i];
+      xx[i] = alpha*xx[i] + beta;
     }
-    dummy(aa, bb, cc, scalar);
+    dummy(x, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "triad_stride_v2");
-  check(aa);
+  results(end_t - start_t, "ss_stride_v2");
+  check(xx);
   return 0;
 }
 #endif
 
 int main()
 {
-  printf("                     Time       TPI\n");
+  printf("                     Time       TPE\n");
   printf("             Loop     ns       ps/el     Checksum\n");
-  triad_stride_esc();
-  triad_stride_vec();
-  //triad_stride_v2(a,b,c);
+  ss_stride_esc();
+  ss_stride_vec();
+  //ss_stride_v2(x);
   return 0;
 }
 

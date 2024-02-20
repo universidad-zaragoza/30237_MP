@@ -41,13 +41,11 @@
 #define SIMD_ALIGN  64  /* 512 bits (preparado para AVX-512) */
 
 /* LEN+1 porque hay recorridos que se inician en el elemento 1 */
-static real a[LEN+1] __attribute__((aligned(SIMD_ALIGN)));
-static real b[LEN+1] __attribute__((aligned(SIMD_ALIGN)));
-static real c[LEN+1] __attribute__((aligned(SIMD_ALIGN)));
+static real x[LEN+1] __attribute__((aligned(SIMD_ALIGN)));
+static real alpha = 0.9;
+static real beta = 0.5;
 
-static real scalar = 3.0;
-
-int dummy(real a[], real b[], real c[], real scalar);
+int dummy(real a[], real alpha, real beta);
 
 /* inhibimos el inlining de algunas funciones
  * para que el ensamblador sea más cómodo de leer */
@@ -66,49 +64,52 @@ get_wall_time()
 
 /* inhibimos vectorización en esta función
  * para que los informes de compilación sean más cómodos de leer */
-__attribute__((optimize("no-tree-vectorize")))
+#ifndef __INTEL_LLVM_COMPILER
+   __attribute__((optimize("no-tree-vectorize")))
+#endif
+__attribute__ ((noinline))
 void check(const real arr[LEN])
 {
   real sum = 0;
+#ifdef __INTEL_LLVM_COMPILER
+  #pragma novector
+#endif
   for (unsigned int i = 0; i < LEN; i++)
     sum += arr[i];
 
   printf("%f \n", sum);
 }
 
-__attribute__((optimize("no-tree-vectorize")))
+#ifndef __INTEL_LLVM_COMPILER
+   __attribute__((optimize("no-tree-vectorize")))
+#endif
 __attribute__ ((noinline))
 int init()
 {
+#ifdef __INTEL_LLVM_COMPILER
+  #pragma novector
+#endif
     for (unsigned int j = 0; j < LEN; j++)
     {
-	    a[j] = 1.0;
-	    b[j] = 2.0;
-	    c[j] = 0.0;
+	    x[j] = 1.0;
     }
-    b[69] = 69.0;
-    c[69] = 69.0;
-
-    for (unsigned int j = 0; j < LEN; j++)
-		a[j] = 2.0E0 * a[j];
-
-  return 0;
+    return 0;
 }
 
 __attribute__ ((noinline))
 void results(const double wall_time, const char *loop)
 {
-    printf("%20s  %6.1f    %6.1f     ",
+    printf("%18s  %6.1f    %6.1f     ",
             loop /* loop name */,
             wall_time/(1e-9*NTIMES),     /* ns/loop */
             wall_time/(1e-12*NTIMES*LEN) /* ps/el */);
 }
 
-/* triad functions */
-/* primeros elementos alineados */
+/* scale and shift functions */
+/* primer elemento alineado */
 __attribute__ ((noinline))
 int
-triad_align_v1()
+ss_align_v1()
 {
   double start_t, end_t;
 
@@ -118,18 +119,18 @@ triad_align_v1()
   {
     for (unsigned int i = 0; i < LEN; i++)
     {
-        a[i] = b[i] + scalar*c[i];
+        x[i] = alpha*x[i] + beta;
     }
-    dummy(a, b, c, scalar);
+    dummy(x, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "triad_align_v1");
-  check(a);
+  results(end_t - start_t, "ss_align_v1");
+  check(x);
   return 0;
 }
 
 /* primeros elementos no alineados */
-int triad_align_v2()
+int ss_align_v2()
 {
   double start_t, end_t;
 
@@ -139,19 +140,19 @@ int triad_align_v2()
   {
     for (unsigned int i = 0; i < LEN; i++)
     {
-        a[i+1] = b[i+1] + scalar*c[i+1];
+        x[i+1] = alpha*x[i+1] + beta;
     }
-    dummy(a, b, c, scalar);
+    dummy(x, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "triad_align_v2");
-  check(a);
+  results(end_t - start_t, "ss_align_v2");
+  check(x);
   return 0;
 }
 
 
 /* accesos a memoria alineados, intrinseco */
-int triad_align_v1_intr()
+int ss_align_v1_intr()
 {
   double start_t, end_t;
 
@@ -159,45 +160,45 @@ int triad_align_v1_intr()
   start_t = get_wall_time();
 
 #if PRECISION==0
-  __m256 vA, vB, vC, vscalar;
+  __m256 vX, valpha, vbeta;
   for (unsigned int nl = 0; nl < NTIMES; nl++)
   {
-    vscalar = _mm256_set1_ps(scalar);      //vscalar = _mm256_load1_ps(&scalar);
+    valpha = _mm256_set1_ps(alpha);      //vscalar = _mm256_load1_ps(&alpha);
+    vbeta = _mm256_set1_ps(beta);
     for (unsigned int i = 0; i < LEN; i+= AVX_LEN)
     {
-      vB = _mm256_load_ps(&b[i]);
-      vC = _mm256_load_ps(&c[i]);
-      vC = _mm256_mul_ps(vscalar, vC);
-      vA = _mm256_add_ps(vB, vC);
-      _mm256_store_ps(&a[i], vA);
+      vX = _mm256_load_ps(&x[i]);
+      vX = _mm256_mul_ps(valpha, vX);
+      vX = _mm256_add_ps(vX, vbeta);
+      _mm256_store_ps(&x[i], vX);
     }
-    dummy(a, b, c, scalar);
+    dummy(x, alpha, beta);
   }
 #else
-  __m256d vA, vB, vC, vscalar;
+  __m256d vX, valpha, vbeta;
   for (unsigned int nl = 0; nl < NTIMES; nl++)
   {
-    vscalar = _mm256_set1_pd(scalar);      //vscalar = _mm256_load1_ps(&scalar);
+    valpha = _mm256_set1_pd(alpha);
+    vbeta = _mm256_set1_pd(beta);
     for (unsigned int i = 0; i < LEN; i+= AVX_LEN)
     {
-      vB = _mm256_load_pd(&b[i]);
-      vC = _mm256_load_pd(&c[i]);
-      vC = _mm256_mul_pd(vscalar, vC);
-      vA = _mm256_add_pd(vB, vC);
-      _mm256_store_pd(&a[i], vA);
+      vX = _mm256_load_pd(&x[i]);
+      vX = _mm256_mul_pd(valpha, vX);
+      vX = _mm256_add_pd(vX, vbeta);
+      _mm256_store_pd(&x[i], vX);
     }
-    dummy(a, b, c, scalar);
+    dummy(x, alpha, beta);
   }
 #endif
 
   end_t = get_wall_time();
-  results(end_t - start_t, "triad_align_v1_intr");
-  check(a);
+  results(end_t - start_t, "ss_align_v1_intr");
+  check(x);
   return 0;
 }
 
 /* accesos a memoria no alineados, intrinseco */
-int triad_align_v2_intr()
+int ss_align_v2_intr()
 {
   double start_t, end_t;
 
@@ -205,45 +206,45 @@ int triad_align_v2_intr()
   start_t = get_wall_time();
 
 #if PRECISION==0
-  __m256 vA, vB, vC, vscalar;
+  __m256 vX, valpha, vbeta;
   for (unsigned int nl = 0; nl < NTIMES; nl++)
   {
-    vscalar = _mm256_set1_ps(scalar);      //vscalar = _mm256_load1_ps(&scalar);
+    valpha = _mm256_set1_ps(alpha);      //vscalar = _mm256_load1_ps(&alpha);
+    vbeta = _mm256_set1_ps(beta);
     for (unsigned int i = 0; i < LEN; i+= AVX_LEN)
     {
-      vB = _mm256_loadu_ps(&b[i+1]);
-      vC = _mm256_loadu_ps(&c[i+1]);
-      vC = _mm256_mul_ps(vscalar, vC);
-      vA = _mm256_add_ps(vB, vC);
-      _mm256_storeu_ps(&a[i+1], vA);
+      vX = _mm256_loadu_ps(&x[i+1]);
+      vX = _mm256_mul_ps(valpha, vX);
+      vX = _mm256_add_ps(vbeta, vX);
+      _mm256_storeu_ps(&x[i+1], vX);
     }
-    dummy(a, b, c, scalar);
+    dummy(x, alpha, beta);
   }
 #else
-  __m256d vA, vB, vC, vscalar;
+  __m256d vX, valpha, vbeta;
   for (unsigned int nl = 0; nl < NTIMES; nl++)
   {
-    vscalar = _mm256_set1_pd(scalar);      //vscalar = _mm256_load1_ps(&scalar);
+    valpha = _mm256_set1_pd(alpha);      //vscalar = _mm256_load1_ps(&alpha);
+    vbeta = _mm256_set1_pd(beta);
     for (unsigned int i = 0; i < LEN; i+= AVX_LEN)
     {
-      vB = _mm256_loadu_pd(&b[i+1]);
-      vC = _mm256_loadu_pd(&c[i+1]);
-      vC = _mm256_mul_pd(vscalar, vC);
-      vA = _mm256_add_pd(vB, vC);
-      _mm256_storeu_pd(&a[i+1], vA);
+      vX = _mm256_loadu_pd(&x[i+1]);
+      vX = _mm256_mul_pd(valpha, vX);
+      vX = _mm256_add_pd(vbeta, vX);
+      _mm256_storeu_pd(&x[i+1], vX);
     }
-    dummy(a, b, c, scalar);
+    dummy(x, alpha, beta);
   }
 #endif
 
   end_t = get_wall_time();
-  results(end_t - start_t, "triad_align_v2_intr");
-  check(a);
+  results(end_t - start_t, "ss_align_v2_intr");
+  check(x);
   return 0;
 }
 
 /* datos no alineados, intrinseco alineado */
-int triad_align_v1_intru()
+int ss_align_v1_intru()
 {
   double start_t, end_t;
 
@@ -251,40 +252,40 @@ int triad_align_v1_intru()
   start_t = get_wall_time();
 
 #if PRECISION==0
-  __m256 vA, vB, vC, vscalar;
+  __m256 vX, valpha, vbeta;
   for (unsigned int nl = 0; nl < NTIMES; nl++)
   {
-    vscalar = _mm256_set1_ps(scalar);      //vscalar = _mm256_load1_ps(&scalar);
+    valpha = _mm256_set1_ps(alpha);      //vscalar = _mm256_load1_ps(&scalar);
+    vbeta = _mm256_set1_ps(beta);
     for (unsigned int i = 0; i < LEN; i+= AVX_LEN)
     {
-      vB = _mm256_load_ps(&b[i+1]);
-      vC = _mm256_load_ps(&c[i+1]);
-      vC = _mm256_mul_ps(vscalar, vC);
-      vA = _mm256_add_ps(vB, vC);
-      _mm256_store_ps(&a[i+1],vA);
+      vX = _mm256_load_ps(&x[i+1]);
+      vX = _mm256_mul_ps(valpha, vX);
+      vX = _mm256_add_ps(vbeta, vX);
+      _mm256_store_ps(&x[i+1], vX);
     }
-    dummy(a, b, c, scalar);
+    dummy(x, alpha, beta);
   }
 #else
-  __m256d vA, vB, vC, vscalar;
+  __m256d vX, valpha, vbeta;
   for (unsigned int nl = 0; nl < NTIMES; nl++)
   {
-    vscalar = _mm256_set1_pd(scalar);      //vscalar = _mm256_load1_ps(&scalar);
+    valpha = _mm256_set1_ps(alpha);      //vscalar = _mm256_load1_ps(&alpha);
+    vbeta = _mm256_set1_ps(beta);
     for (unsigned int i = 0; i < LEN; i+= AVX_LEN)
     {
-      vB = _mm256_load_pd(&b[i+1]);
-      vC = _mm256_load_pd(&c[i+1]);
-      vC = _mm256_mul_pd(vscalar, vC);
-      vA = _mm256_add_pd(vB, vC);
-      _mm256_store_pd(&a[i+1], vA);
+      vX = _mm256_load_pd(&x[i+1]);
+      vX = _mm256_mul_pd(valpha, vX);
+      vX = _mm256_add_pd(vbeta, vX);
+      _mm256_store_pd(&x[i+1], vX);
     }
-    dummy(a, b, c, scalar);
+    dummy(x, alpha, beta);
   }
 #endif
 
   end_t = get_wall_time();
-  results(end_t - start_t, "triad_align_v1_intru");
-  check(a);
+  results(end_t - start_t, "ss_align_v1_intru");
+  check(x);
   return 0;
 }
 
@@ -293,20 +294,18 @@ int main()
   // printf("NTIMES: %u\n", NTIMES);
 
   printf("Direcciones de los vectores\n");
-  printf("  @a[0]: %p\n", &a);
-  printf("  @b[0]: %p\n", &b);
-  printf("  @c[0]: %p\n", &c);
-  printf("  @c[8]: %p\n", &c[8]);
+  printf("  @x[0]: %p\n", &x);
+  printf("  @x[8]: %p\n", &x[8]);
   printf("\n");
 
-  printf("                      Time      TPI\n");
+  printf("                      Time      TPE\n");
   printf("         Loop          ns      ps/el      Checksum\n");
 
-  triad_align_v1();         /* a[],b[],c[] alineados */
-  triad_align_v2();         /* a[],b[],c[] no alineados */
-  triad_align_v1_intr();    /* v1 con intrinsecos */
-  triad_align_v2_intr();    /* v2 con intrínsecos */
-  //triad_align_v1_intru();     /* v1 con intrinsecos pero vectores no alineados */
+  ss_align_v1();         /* x[] alineado */
+  ss_align_v2();         /* x[] no alineado */
+  ss_align_v1_intr();    /* v1 con intrinsecos */
+  ss_align_v2_intr();    /* v2 con intrínsecos */
+  //ss_align_v1_intru();     /* v1 con intrinsecos pero vectores no alineados */
 
   exit(0);
 }

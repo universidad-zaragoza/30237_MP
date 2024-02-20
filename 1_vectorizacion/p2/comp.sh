@@ -31,7 +31,7 @@ while getopts "f:c:l:p:h" opt; do
     l) 
       # echo "especificada longitud de vectores -> $OPTARG"
       vlenk=$OPTARG
-      vlen=$((vlenk*1024))
+      vlen=$((vlenk*1024))U
       ;;
     p) 
       # echo "especificado precision -> $OPTARG"
@@ -41,11 +41,12 @@ while getopts "f:c:l:p:h" opt; do
       echo "uso:"
       echo "$0 -f fichero  -c compilador"
       echo "ejemplo:"
-      echo "$0 -f s000  -c gcc"
+      echo "$0 -f ss_align.c -c gcc"
       exit
       ;;
     \?)
       echo "opción inválida: -$OPTARG"
+      exit 1
       ;;
     :)
       echo "la opción -$OPTARG requiere un parámetro"
@@ -92,7 +93,7 @@ FLAGS="-std=c11 -g -O3 -DPRECISION=$p -DLEN=$vlen"
 LIBS="-lm"
 
 case $comp in
-    gcc | gcc-4 | gcc-5 | gcc-6 | gcc-7 | gcc-8 | gcc-9)
+    gcc | gcc-7 | gcc-8 | gcc-9 | gcc-10 | gcc-11 | gcc-12)
         # echo "---------- gcc ---------------------------------------------------------"
         # for gcc > 4.7
         GCC_FLAGS=" -Wall -Wextra -Wshadow"  # GCC_FLAGS="-Q -v"
@@ -101,7 +102,7 @@ case $comp in
         NOVECTOR_FLAG="-fno-tree-vectorize"
         EXTRA_FLAGS=""
 
-        if [ ${id} = "axpby_stride" ]; then
+        if [ ${id} = "ss_stride" ]; then
            EXTRA_FLAGS="-mfma -ffast-math"
         fi
 
@@ -144,15 +145,17 @@ case $comp in
         #       dummy.o assembler/${id}.avx.${comp}.chus.s $LIBS -o ${id}.avx.${comp}.chus  > reports/${id}.avx.${comp}.chus.report.txt   2>&1
         ;;
 
-    icc )
+    icx )
         # export PATH=$PATH:/opt/intel/bin
         
         #echo "---------- icc ---------------------------------------------------------"
-        ICC_FLAGS="-unroll0"
-        VEC_REPORT_FLAG="-qopt-report-phase=vec"
+        ICX_FLAGS=" "
+        # ICX_FLAGS="-unroll0"
+        VEC_REPORT_FLAG=" "
+        # VEC_REPORT_FLAG="-qopt-report-phase=vec"
         NOVECTOR_FLAG="-no-vec"
 
-        icc -DPRECISION=$p -c ../dummy.c
+        icx -DPRECISION=$p -c ../dummy.c
         
         # CUIDADO
         # -m option is used to build for non-Intel processors
@@ -164,42 +167,24 @@ case $comp in
         #echo "---------- icc (AVX) ---------------------------------------------------"
         binario=${id}.${vlenk}k.${precision}.avx2.${comp}
 
-        icc  -march=core-avx2 -vec-threshold0 $FLAGS $ICC_FLAGS  $VEC_REPORT_FLAG  \
+        icx  -xCORE-AVX2  -vec-threshold0 $FLAGS $ICX_FLAGS  $VEC_REPORT_FLAG  \
              dummy.o ../${src} -o ${binario}              \
              -qopt-report-file=stdout > reports/${binario}.report.txt 2>&1
-        icc  -march=core-avx2 -vec-threshold0 $FLAGS $ICC_FLAGS  -S -fsource-asm   \
+        icx  -xCORE-AVX2  -vec-threshold0 $FLAGS $ICX_FLAGS  -S -fsource-asm   \
              dummy.o ../${src} -o assembler/${binario}.s > /dev/null  2>&1
 
-        # icc  -xHost $FLAGS $ICC_FLAGS  $VEC_REPORT_FLAG  \
+        # icx  -xHost $FLAGS $ICX_FLAGS  $VEC_REPORT_FLAG  \
         #     dummy.o ../${src} -o ${binario}              \
         #     -qopt-report-file=stdout > reports/${binario}.report.txt 2>&1
-        #icc  -xHost $FLAGS $ICC_FLAGS  -S -fsource-asm   \
+        # icx -xHost $FLAGS $ICX_FLAGS  -S -fsource-asm   \
         #     dummy.o ../${src} -o assembler/${binario}.s > /dev/null  2>&1
         
-        # icc  -xHost -DPRECISION=$p $FLAGS $ICC_FLAGS  $NOVECTOR_FLAG  \
+        # icx  -xHost -DPRECISION=$p $FLAGS $ICX_FLAGS  $NOVECTOR_FLAG  \
         #      dummy.o ../${src} -o ${id}.noavx.icc                         \
         #      -qopt-report-file=stdout > reports/${id}.noavx.icc.report.txt
-        # icc -xHost -DPRECISION=$p $FLAGS $ICC_FLAGS  $NOVECTOR_FLAG  -S -fsource-asm \
+        # icx -xHost -DPRECISION=$p $FLAGS $ICX_FLAGS  $NOVECTOR_FLAG  -S -fsource-asm \
         #       dummy.o ../${src} -o assembler/${id}.noavx.icc.s
-        
-        ;;
-
-    icc-phi )
-        # export PATH=$PATH:/opt/intel/bin
-        
-        #echo "---------- icc ---------------------------------------------------------"
-        #ICC_FLAGS="-unroll0"
-        VEC_REPORT_FLAG="-qopt-report-phase=vec"
-        NOVECTOR_FLAG="-no-vec"
-
-        icc -DPRECISION=$p -c ../dummy.c
-        
-        #echo "---------- icc (AVX-512) ---------------------------------------------------"
-        icc  -xCORE-AVX512 -DPRECISION=$p $FLAGS $ICC_FLAGS  $VEC_REPORT_FLAG  \
-             dummy.o ../${src} -o ${id}.avx512.icc                             \
-             -qopt-report-file=stdout > reports/${id}.avx512.icc.report.txt 2>&1
-        icc  -xCORE-AVX512 -DPRECISION=$p $FLAGS $ICC_FLAGS  -S -fsource-asm   \
-             dummy.o ../${src} -o assembler/${id}.avx512.icc.s > /dev/null  2>&1
+        echo -e "OK\n"
         ;;
 
     * )
