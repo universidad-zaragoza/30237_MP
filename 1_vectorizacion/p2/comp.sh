@@ -12,13 +12,17 @@
 comp=gcc
 vlenk=1   # 1K elements
 vlen=$((vlenk*1024))
+DEFINES=
 
 # floating point precision, 
 #    p=0 corresponds to single precision
 #    p=1 corresponds to double precision
 p=0
 
-while getopts "f:c:l:p:h" opt; do
+# native version
+native=0
+
+while getopts "f:c:l:p:nT:h" opt; do
   case $opt in
     f) 
       # echo "especificado fichero -> $OPTARG"
@@ -30,18 +34,42 @@ while getopts "f:c:l:p:h" opt; do
       ;;
     l) 
       # echo "especificada longitud de vectores -> $OPTARG"
+      # https://stackoverflow.com/a/18620446/1037634
+      case ${OPTARG} in
+	      *[!0-9]* | '')
+	          echo "La longitud de los vectores debe ser un número entero positivo"
+	          exit
+	          ;;
+	  esac
       vlenk=$OPTARG
       vlen=$((vlenk*1024))U
+      DEFINES="${DEFINES} -DLEN=$vlen"
       ;;
     p) 
       # echo "especificado precision -> $OPTARG"
       p=$OPTARG
       ;;
+    n) 
+      # echo "especificada compilación nativa"
+      native=1
+      ;;
+    T) 
+      # echo "especificado NTIMES -> $OPTARG"
+      # https://stackoverflow.com/a/18620446/1037634
+      case ${OPTARG} in
+	      *[!0-9]* | '')
+	          echo "El número de repeticiones debe ser un número entero positivo"
+	          exit
+	          ;;
+	  esac
+      NTIMES=${OPTARG}UL
+      DEFINES="${DEFINES} -DNTIMES=${NTIMES}"
+      ;;
     h)
       echo "uso:"
       echo "$0 -f fichero  -c compilador"
       echo "ejemplo:"
-      echo "$0 -f ss_align.c -c gcc"
+      echo "$0 -f ss_align.c -c gcc -l 1  -p 0"
       exit
       ;;
     \?)
@@ -89,7 +117,8 @@ rm -f *.o
 mkdir -p assembler
 mkdir -p reports
 
-FLAGS="-std=c11 -g -O3 -DPRECISION=$p -DLEN=$vlen"
+FLAGS="-std=c11 -g -O3 -DPRECISION=$p"
+FLAGS="${FLAGS} ${DEFINES}"
 LIBS="-lm"
 
 case $comp in
@@ -113,15 +142,6 @@ case $comp in
         # nota: las compilaciones con -fno-tree-vectorize no generan informe
 
         #echo "---------- gcc (AVX) ---------------------------------------------------"
-        # echo "gcc native ... "
-        # binario=${id}.${vlenk}k.${precision}.native.${comp}
-        # rm -f ${binario}
-        # $comp  -march=native $FLAGS $GCC_FLAGS $EXTRA_FLAGS  $VEC_REPORT_FLAG  \
-        #       dummy.o ../${src} $LIBS -o ${binario}             \
-        #       2>&1  | tee reports/${binario}.report.txt
-        # objdump -Sd ${binario} > assembler/${binario}.s
-        # echo -e "OK\n"
-
         echo "gcc avx2 ... "
         binario=${id}.${vlenk}k.${precision}.avx2.${comp}
         rm -f ${binario}
@@ -130,6 +150,18 @@ case $comp in
                 2>&1  | tee reports/${binario}.report.txt
         objdump -Sd ${binario} > assembler/${binario}.s
         echo -e "OK\n"
+
+        # echo "---------- gcc (native) ---------------------------------------------------"
+        if [ "$native" -eq 1 ]; then
+            echo "gcc native ... "
+            binario=${id}.${vlenk}k.${precision}.native.${comp}
+            rm -f ${binario}
+            $comp  -march=native  $FLAGS $GCC_FLAGS $EXTRA_FLAGS  $VEC_REPORT_FLAG    \
+                   dummy.o ../${src} $LIBS -o ${binario}        \
+                   2>&1  | tee reports/${binario}.report.txt
+            objdump -Sd ${binario} > assembler/${binario}.s
+            echo -e "OK\n"
+        fi
 
         # xeon phi
         # $comp  -march=knl -DPRECISION=$p $FLAGS $GCC_FLAGS $VEC_REPORT_FLAG  \

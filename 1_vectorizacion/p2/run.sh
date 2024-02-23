@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # uso:
-#    ./run.sh -c compilador -f fichero -l vector_len (Kelements) -p precision
+#    ./run.sh -c compilador -f fichero -l vector_len (Kelements) -p precision -s
 # ejemplo
 #    ./run.sh -c gcc  -f axpy.c -l 2  -p 0
 
@@ -10,27 +10,25 @@
 
 # valores por defecto
 comp=gcc
-# flag march
-arch=avx2
-#arch=native
 src="ss_align.c"
 vlenk=1   # 1K elementos
+PERF=
 
 # floating point precision, 
 #    p=0 corresponds to single precision
 #    p=1 corresponds to double precision
 p=0
 
-while getopts "f:c:a:l:p:h" opt; do
+# native version
+native=0
+
+while getopts "f:c:l:p:nsh" opt; do
   case $opt in
     f) 
       src=$OPTARG
       ;;
     c) 
       comp=$OPTARG
-      ;;
-    a) 
-      arch=$OPTARG
       ;;
     l) 
       vlenk=$OPTARG
@@ -39,6 +37,14 @@ while getopts "f:c:a:l:p:h" opt; do
     p) 
       # echo "especificado precision -> $OPTARG"
       p=$OPTARG
+      ;;
+    n) 
+      # echo "especificada ejecución de versión nativa"
+      native=1
+      ;;
+    s) 
+      # echo "especificada ejecución bajo perf"
+      PERF="perf stat -d "
       ;;
     h)
       echo "uso:"
@@ -75,14 +81,28 @@ id="${src%.*}"    # extract .c
 cd ${CPU}
 mkdir -p results
 
-binario=${id}.${vlenk}k.${precision}.${arch}.${comp}
-if [ ! -f ${binario} ]; then
-    echo "No se ha encontrado el fichero ${CPU}/${binario}"
-    exit
+if [ "$native" -eq 1 ]; then
+    version_list=(avx2 native)
+else
+    version_list=(avx2)
 fi
-echo -n "ejecutando ${binario} ... "
-./${binario}    > results/${binario}.out    2>&1
-echo "OK"
+
+# loop over the vector/scalar binaries
+for j in "${!version_list[@]}"; do
+    binario=${id}.${vlenk}k.${precision}.${version_list[$j]}.${comp}
+    if [ ! -f ${binario} ]; then
+        echo "No se ha encontrado el fichero ${CPU}/${binario}"
+        continue
+    fi
+    echo -n "ejecutando ${PERF}${binario} ... "
+    # ./${binario} > results/${binario}.out   2>&1 && echo OK
+    ${PERF} ./${binario} > results/${binario}.out   2>&1
+    if [ $? -eq 0 ]; then
+        echo OK
+    else
+        echo ERROR
+    fi
+done    
 
 exit
 

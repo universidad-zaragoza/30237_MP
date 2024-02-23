@@ -74,7 +74,7 @@ void check(const real arr[LEN])
 #ifdef __INTEL_LLVM_COMPILER
   #pragma novector
 #endif
-  for (unsigned int i = 0; i < LEN; i++)
+  for (unsigned int i = 0; i < LEN+1; i++)
     sum += arr[i];
 
   printf("%f \n", sum);
@@ -89,7 +89,7 @@ int init()
 #ifdef __INTEL_LLVM_COMPILER
   #pragma novector
 #endif
-    for (unsigned int j = 0; j < LEN; j++)
+    for (unsigned int j = 0; j < LEN+1; j++)
     {
 	    x[j] = 1.0;
     }
@@ -292,11 +292,10 @@ int ss_align_v1_intru()
 int main()
 {
   // printf("NTIMES: %u\n", NTIMES);
-
-  printf("Direcciones de los vectores\n");
-  printf("  @x[0]: %p\n", &x);
-  printf("  @x[8]: %p\n", &x[8]);
-  printf("\n");
+  // printf("Direcciones de los vectores\n");
+  // printf("  @x[0]: %p\n", &x);
+  // printf("  @x[8]: %p\n", &x[8]);
+  // printf("\n");
 
   printf("                      Time      TPE\n");
   printf("         Loop          ns      ps/el      Checksum\n");
