@@ -61,20 +61,31 @@ get_wall_time()
 
 /* inhibimos vectorización en esta función
  * para que los informes de compilación sean más cómodos de leer */
+#ifndef __INTEL_LLVM_COMPILER
 __attribute__((optimize("no-tree-vectorize")))
+#endif
+__attribute__ ((noinline))
 void check(const real arr[LEN])
 {
     real sum = 0;
-    for (unsigned int i = 0; i < LEN; i++)
+#ifdef __INTEL_LLVM_COMPILER
+  #pragma novector
+#endif
+  for (unsigned int i = 0; i < LEN+1; i++)
         sum += arr[i];
 
     printf("%f \n", sum);
 }
 
+#ifndef __INTEL_LLVM_COMPILER
 __attribute__((optimize("no-tree-vectorize")))
+#endif
 __attribute__ ((noinline))
 int init()
 {
+#ifdef __INTEL_LLVM_COMPILER
+  #pragma novector
+#endif
     for (unsigned int j = 0; j < LEN; j++)
     {
 	    x[j] = 1.0;
