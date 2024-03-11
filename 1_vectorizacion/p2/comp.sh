@@ -12,8 +12,10 @@
 comp=gcc
 vlenk=1   # 1K elements
 vlen=$((vlenk*1024))
+loopalign=0
+loopalignstr=
 DEFINES=
-
+ALIGN_FLAGS=
 # floating point precision, 
 #    p=0 corresponds to single precision
 #    p=1 corresponds to double precision
@@ -22,7 +24,7 @@ p=0
 # native version
 native=0
 
-while getopts "f:c:l:p:nT:h" opt; do
+while getopts "f:c:l:p:nT:a:h" opt; do
   case $opt in
     f) 
       # echo "especificado fichero -> $OPTARG"
@@ -64,6 +66,20 @@ while getopts "f:c:l:p:nT:h" opt; do
 	  esac
       NTIMES=${OPTARG}UL
       DEFINES="${DEFINES} -DNTIMES=${NTIMES}"
+      ;;
+    a) 
+      # loop alignment
+      # https://easyperf.net/blog/2018/01/18/Code_alignment_issues
+      case ${OPTARG} in
+	      *[!0-9]* | '')
+	          echo "Los bucles tienen que estar alineados con un número entero positivo"
+	          exit
+	          ;;
+	  esac
+      loopalign=${OPTARG}
+      loopalignstr=.${OPTARG}loopalign
+      ALIGN_FLAGS="-falign-loops=$loopalign"
+      # ALIGN_FLAGS="-falign-functions=$loopalign -falign-loops=$loopalign"
       ;;
     h)
       echo "uso:"
@@ -118,8 +134,9 @@ mkdir -p assembler
 mkdir -p reports
 
 FLAGS="-std=c11 -g -O3 -DPRECISION=$p"
-FLAGS="${FLAGS} ${DEFINES}"
-LIBS="-lm"
+FLAGS="${FLAGS} ${ALIGN_FLAGS} ${DEFINES}"
+LIBS=" "
+# LIBS="-lm"
 
 case $comp in
     gcc | gcc-7 | gcc-8 | gcc-9 | gcc-10 | gcc-11 | gcc-12)
@@ -143,7 +160,7 @@ case $comp in
 
         #echo "---------- gcc (AVX) ---------------------------------------------------"
         echo "gcc avx2 ... "
-        binario=${id}.${vlenk}k.${precision}.avx2.${comp}
+        binario=${id}.${vlenk}k.${precision}.avx2${loopalignstr}.${comp}
         rm -f ${binario}
         $comp  -mavx2 $FLAGS $GCC_FLAGS $EXTRA_FLAGS  $VEC_REPORT_FLAG    \
                 dummy.o ../${src} $LIBS -o ${binario}        \
@@ -154,7 +171,7 @@ case $comp in
         # echo "---------- gcc (native) ---------------------------------------------------"
         if [ "$native" -eq 1 ]; then
             echo "gcc native ... "
-            binario=${id}.${vlenk}k.${precision}.native.${comp}
+            binario=${id}.${vlenk}k.${precision}.native${loopalignstr}.${comp}
             rm -f ${binario}
             $comp  -march=native  $FLAGS $GCC_FLAGS $EXTRA_FLAGS  $VEC_REPORT_FLAG    \
                    dummy.o ../${src} $LIBS -o ${binario}        \
@@ -162,11 +179,6 @@ case $comp in
             objdump -Sd ${binario} > assembler/${binario}.s
             echo -e "OK\n"
         fi
-
-        # xeon phi
-        # $comp  -march=knl -DPRECISION=$p $FLAGS $GCC_FLAGS $VEC_REPORT_FLAG  \
-        #       dummy.o ../${src} $LIBS -o ${id}.avx512.${comp}                    \
-        #       -Wa,-adghln=assembler/${id}.avx512.${comp}.s  > reports/${id}.avx512.${comp}.report.txt   2>&1
 
         # generación de código ensamblador limpio
         # $comp  -march=native -DPRECISION=$p $FLAGS $GCC_FLAGS $VEC_REPORT_FLAG  \
@@ -180,12 +192,11 @@ case $comp in
     icx )
         # export PATH=$PATH:/opt/intel/bin
         
-        #echo "---------- icc ---------------------------------------------------------"
+        #echo "---------- icx ---------------------------------------------------------"
         ICX_FLAGS=" "
-        # ICX_FLAGS="-unroll0"
-        VEC_REPORT_FLAG=" "
+        VEC_REPORT_FLAG="-qopt-report-file=stdout"
         # VEC_REPORT_FLAG="-qopt-report-phase=vec"
-        NOVECTOR_FLAG="-no-vec"
+        NOVECTOR_FLAG="-fno-slp-vectorize -fno-vectorize"
 
         icx -DPRECISION=$p -c ../dummy.c
         
@@ -196,26 +207,14 @@ case $comp in
         #     if there is a performance benefit. It also generates
         #     a generic IA-32 architecture code path
         
-        #echo "---------- icc (AVX) ---------------------------------------------------"
-        binario=${id}.${vlenk}k.${precision}.avx2.${comp}
-
-        icx  -xCORE-AVX2  -vec-threshold0 $FLAGS $ICX_FLAGS  $VEC_REPORT_FLAG  \
-             dummy.o ../${src} -o ${binario}              \
-             -qopt-report-file=stdout > reports/${binario}.report.txt 2>&1
-        icx  -xCORE-AVX2  -vec-threshold0 $FLAGS $ICX_FLAGS  -S -fsource-asm   \
-             dummy.o ../${src} -o assembler/${binario}.s > /dev/null  2>&1
-
-        # icx  -xHost $FLAGS $ICX_FLAGS  $VEC_REPORT_FLAG  \
-        #     dummy.o ../${src} -o ${binario}              \
-        #     -qopt-report-file=stdout > reports/${binario}.report.txt 2>&1
-        # icx -xHost $FLAGS $ICX_FLAGS  -S -fsource-asm   \
-        #     dummy.o ../${src} -o assembler/${binario}.s > /dev/null  2>&1
-        
-        # icx  -xHost -DPRECISION=$p $FLAGS $ICX_FLAGS  $NOVECTOR_FLAG  \
-        #      dummy.o ../${src} -o ${id}.noavx.icc                         \
-        #      -qopt-report-file=stdout > reports/${id}.noavx.icc.report.txt
-        # icx -xHost -DPRECISION=$p $FLAGS $ICX_FLAGS  $NOVECTOR_FLAG  -S -fsource-asm \
-        #       dummy.o ../${src} -o assembler/${id}.noavx.icc.s
+        #echo "---------- icx (AVX) ---------------------------------------------------"
+        echo "icx avx2 ... "
+        binario=${id}.${vlenk}k.${precision}.avx2${loopalignstr}.${comp}
+        rm -f ${binario}
+        $comp  -mavx2  $FLAGS $GCC_FLAGS  $VEC_REPORT_FLAG  \
+             dummy.o ../${src} $LIBS -o ${binario}              \
+             2>&1 | tee reports/${binario}.report.txt
+        objdump -Sd ${binario} > assembler/${binario}.s
         echo -e "OK\n"
         ;;
 

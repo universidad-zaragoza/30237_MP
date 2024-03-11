@@ -12,6 +12,7 @@
 comp=gcc
 src="ss_align.c"
 vlenk=1   # 1K elementos
+loopalignstr=
 PERF=
 
 # floating point precision, 
@@ -22,7 +23,7 @@ p=0
 # native version
 native=0
 
-while getopts "f:c:l:p:nsh" opt; do
+while getopts "f:c:l:p:na:sh" opt; do
   case $opt in
     f) 
       src=$OPTARG
@@ -52,6 +53,18 @@ while getopts "f:c:l:p:nsh" opt; do
       echo "ejemplo:"
       echo "$0 -f s000  -c gcc"
       exit
+      ;;
+    a) 
+      # code alignment
+      # https://easyperf.net/blog/2018/01/18/Code_alignment_issues
+      case ${OPTARG} in
+	      *[!0-9]* | '')
+	          echo "Los bucles tienen que estar alineados con un número entero positivo"
+	          exit
+	          ;;
+	  esac
+      loopalign=${OPTARG}
+      loopalignstr=.${OPTARG}loopalign
       ;;
     \?)
       echo "opción inválida: -$OPTARG"
@@ -89,7 +102,7 @@ fi
 
 # loop over the vector/scalar binaries
 for j in "${!version_list[@]}"; do
-    binario=${id}.${vlenk}k.${precision}.${version_list[$j]}.${comp}
+    binario=${id}.${vlenk}k.${precision}.${version_list[$j]}$loopalignstr.${comp}
     if [ ! -f ${binario} ]; then
         echo "No se ha encontrado el fichero ${CPU}/${binario}"
         continue
