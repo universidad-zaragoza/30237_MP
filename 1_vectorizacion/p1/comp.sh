@@ -264,7 +264,7 @@ case $comp in
         #echo "---------- icx (SSE4.2) ------------------------------------------------"
         # -xSSE4.2
         
-        # echo "---------- icc (AVX) ---------------------------------------------------"
+        # echo "---------- icx (AVX) ---------------------------------------------------"
         echo "icx vectorial avx ... "
         binario=${id}.${vlenk}k.${precision}.vec.avx${loopalignstr}.${comp}
         rm -f ${binario}
