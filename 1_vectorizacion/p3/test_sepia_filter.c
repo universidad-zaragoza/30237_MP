@@ -1,7 +1,7 @@
 /* Basado en código descargado en:
  * http://www.cim.mcgill.ca/~junaed/libjpeg.php */
 /* Adaptado: Jesús Alastruey Benedé
- * v1.1, 13-marzo-2020 */
+ * v2.0, 2-marzo-2021 */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +9,7 @@
 #include <string.h>
 #include "jpeg_handler.h"
 #include "include/jpeglib.h"
-#include "RGB2YCbCr.h"
+#include "sepia_filter.h"
 #include "misc.h"
 
 //----------------------------------------------------------------------------
@@ -47,7 +47,7 @@ static struct option_help {
   { "--output_filename", "-o",
     "output filename" },
   { "--conversion_type", "-c",
-    "0: RGB2YCbCr_roundf0, 1: RGB2YCbCr_roundf1, 2: RGB2YCbCr_cast0, 3: RGB2YCbCr_cast1, 4: RGB2YCbCr_SOA0, 5: RGB2YCbCr_SOA1, 6: RGB2YCbCr_block, 7: YCbCr2RGB, [default = 0]" },
+    "0: sepiaf_roundf0, 1: sepiaf_roundf1, 2: sepiaf_cast0, 3: sepiaf_cast1, 4: sepiaf_cast2, 6: sepiaf_SOA0, 7: sepiaf_SOA1, 8: sepiaf_block [default = 0]" },
 //    "0: YCbCr2rgb, 1: YCbCr2gray, 2: rgb2gray, 3: rgb2YCbCr [default = 0]" },
   { "--reference", "-r",
     "write reference image [default = no]" },
@@ -111,7 +111,7 @@ check_conversion_color(char *base_filename, char *id_string,
     image_dif.height = image_out->height;
 
     /* read reference image */
-    snprintf(ref_filename, sizeof(ref_filename), "%s_YbCbCr_ref.ppm", base_filename);
+    snprintf(ref_filename, sizeof(ref_filename), "%s_sepia_ref.ppm", base_filename);
     read_PPM(ref_filename, &image_ref, 6);
 
     n = cmpColor(image_out, &image_ref, &image_dif);
@@ -128,7 +128,7 @@ check_conversion_color(char *base_filename, char *id_string,
         // scale_gray(image_dif, image_out);
         snprintf(dif_filename, sizeof(dif_filename), "%s_%s_dif.jpg", base_filename, id_string);
         // n = write_jpeg_file(dif_filename, image_out);
-        image_dif.color_space = JCS_YCbCr;
+        image_dif.color_space = JCS_RGB;
         n = write_jpeg_file(dif_filename, &image_dif);
         if (n < 0) exit(-1);
     }
@@ -137,16 +137,16 @@ check_conversion_color(char *base_filename, char *id_string,
 //----------------------------------------------------------------------------
 
 static int
-test_convert_RGB2YCbCr()
+test_convert_sepia()
 {
     /* structs to store raw, uncompressed images and its properties (size, channels ...) */
-    image_t image_RGB_in, image_YCbCr;
+    image_t image_RGB, image_sepia;
     int n;
     char basename[STRLEN] = { 0 };
     char tmp_filename[STRLEN+16] = { 0 };
 
     /* open jpeg image */
-    n = read_jpeg_file(in_filename, &image_RGB_in);
+    n = read_jpeg_file(in_filename, &image_RGB);
     if (n < 0) exit(-1);
 
     printf("                     Time\n");
@@ -158,70 +158,68 @@ test_convert_RGB2YCbCr()
     /* dump RGB pixel values to file */
     if (verbose)
     {
-        snprintf(tmp_filename, sizeof(tmp_filename), "%s_RGB_in.ppm", basename);
-        write_PPM(tmp_filename, &image_RGB_in, 6);
+        snprintf(tmp_filename, sizeof(tmp_filename), "%s_RGB.ppm", basename);
+        write_PPM(tmp_filename, &image_RGB, 6);
     }
 
     /* ********************************* */
-    /* RGB -> YCbCr */
+    /* RGB -> sepia */
     /* allocate memory to hold the converted image */
-    image_YCbCr.pixels = (unsigned char*) malloc(3*image_RGB_in.width*image_RGB_in.height);
+    image_sepia.pixels = (unsigned char*) malloc(3*image_RGB.width*image_RGB.height);
 
-    /* convert from RGB to YCbCr */
+    /* convert from RGB to sepia */
     switch (conv_type)
     {
-        case 0: RGB2YCbCr_roundf0(&image_RGB_in, &image_YCbCr);
+        case 0: sepia_filter_roundf0(&image_RGB, &image_sepia);
                 break;
-        case 1: RGB2YCbCr_roundf1(&image_RGB_in, &image_YCbCr);
+        case 1: sepia_filter_roundf1(&image_RGB, &image_sepia);
                 break;
-        case 2: RGB2YCbCr_cast0(&image_RGB_in, &image_YCbCr);
+        case 2: sepia_filter_cast0(&image_RGB, &image_sepia);
                 break;
-        case 3: RGB2YCbCr_cast1(&image_RGB_in, &image_YCbCr);
+        case 3: sepia_filter_cast1(&image_RGB, &image_sepia);
                 break;
-        case 4: RGB2YCbCr_cast2(&image_RGB_in, &image_YCbCr);
+        case 4: sepia_filter_cast2(&image_RGB, &image_sepia);
                 break;
-        case 5: RGB2YCbCr_cast_esc(&image_RGB_in, &image_YCbCr);
+        case 5: sepia_filter_cast_esc(&image_RGB, &image_sepia);
                 break;
-        case 6: RGB2YCbCr_SOA0(&image_RGB_in, &image_YCbCr);
+        case 6: sepia_filter_SOA0(&image_RGB, &image_sepia);
                 break;
-        case 7: RGB2YCbCr_SOA1(&image_RGB_in, &image_YCbCr);
+        case 7: sepia_filter_SOA1(&image_RGB, &image_sepia);
                 break;
-        case 8: RGB2YCbCr_block(&image_RGB_in, &image_YCbCr);
+        case 8: sepia_filter_block(&image_RGB, &image_sepia);
                 break;
-        case 9: RGB2YCbCr_roundf0(&image_RGB_in, &image_YCbCr);
-                RGB2YCbCr_roundf1(&image_RGB_in, &image_YCbCr);
-                RGB2YCbCr_cast0(&image_RGB_in, &image_YCbCr);
-                RGB2YCbCr_cast1(&image_RGB_in, &image_YCbCr);
-                RGB2YCbCr_cast2(&image_RGB_in, &image_YCbCr);
-                RGB2YCbCr_cast_esc(&image_RGB_in, &image_YCbCr);
-                RGB2YCbCr_SOA0(&image_RGB_in, &image_YCbCr);
-                RGB2YCbCr_SOA1(&image_RGB_in, &image_YCbCr);
-                RGB2YCbCr_block(&image_RGB_in, &image_YCbCr);
+        case 9: sepia_filter_roundf0(&image_RGB, &image_sepia);
+                sepia_filter_roundf1(&image_RGB, &image_sepia);
+                sepia_filter_cast0(&image_RGB, &image_sepia);
+                sepia_filter_cast1(&image_RGB, &image_sepia);
+                sepia_filter_cast2(&image_RGB, &image_sepia);
+                sepia_filter_cast_esc(&image_RGB, &image_sepia);
+                sepia_filter_SOA0(&image_RGB, &image_sepia);
+                sepia_filter_SOA1(&image_RGB, &image_sepia);
+                sepia_filter_block(&image_RGB, &image_sepia);
                 break;
-        case 10: YCbCr2RGB_conversion(&image_YCbCr, &image_RGB_in);
-                break;
-        default: RGB2YCbCr_roundf0(&image_RGB_in, &image_YCbCr);
+        default: sepia_filter_roundf0(&image_RGB, &image_sepia);
     }
 
-    /* write YCbCr image to file */
-    snprintf(tmp_filename, sizeof(tmp_filename), "%s_YCbCr.jpg", basename);
-    n = write_jpeg_file(tmp_filename, &image_YCbCr);
+    /* write sepia image to file */
+    snprintf(tmp_filename, sizeof(tmp_filename), "%s_sepia.jpg", basename);
+    n = write_jpeg_file(tmp_filename, &image_sepia);
     if (n < 0) exit(-1);
 
     if (reference)
     {
         /* reference image written in jpg and ppm formats */
-        snprintf(tmp_filename, sizeof(tmp_filename), "%s_YbCbCr_ref.jpg", basename);
-        n = write_jpeg_file(tmp_filename, &image_YCbCr);
+        snprintf(tmp_filename, sizeof(tmp_filename), "%s_sepia_ref.jpg", basename);
+        n = write_jpeg_file(tmp_filename, &image_sepia);
 
         /* comparison of images in jpg format does not work */
-        snprintf(tmp_filename, sizeof(tmp_filename), "%s_YbCbCr_ref.ppm", basename);
-        write_PPM(tmp_filename, &image_YCbCr, 6);
+        snprintf(tmp_filename, sizeof(tmp_filename), "%s_sepia_ref.ppm", basename);
+        write_PPM(tmp_filename, &image_sepia, 6);
     }
     else
     {
         /* verify conversion */
-        if (conv_type != 9) check_conversion_color(basename, "YCbCr", &image_YCbCr);
+        if (conv_type != 9) check_conversion_color(basename, "sepia", &image_sepia);
     }   
     return 0;
 }
@@ -282,6 +280,6 @@ main(int argc, char *argv[])
         }
     }
 
-    test_convert_RGB2YCbCr();
+    test_convert_sepia();
     exit(0);
 }
