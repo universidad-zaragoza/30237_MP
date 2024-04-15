@@ -6,7 +6,7 @@ int main(void){
   int i;
   int nthreads, tnumber;
 
-  omp_set_dynamic(true);
+  omp_set_dynamic(????);  // Ver el manual 
   //omp_set_max_active_levels(1);  // Sin anidamiento
   //omp_set_max_active_levels(5);  // Hasta 5 niveles de anidamiento
   omp_set_num_threads(2);
