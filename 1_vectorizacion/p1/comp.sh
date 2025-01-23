@@ -3,14 +3,14 @@
 # uso:
 #    ./comp.sh -c compilador -f fichero -l vector_len (Kelements) -p precision -T repeticiones_bucle
 # ejemplo
-#    ./comp.sh -c gcc  -f triad.c -l 2  -p 0
+#    ./comp.sh -c gcc  -f axpy.c -l 2  -p 0
 
 [ -z "$CPU" ] && echo "Hay que inicializar la variable CPU (source ./init_cpuname.sh)" && exit 1;
 #: ${CPU:?"Hay que inicializar la variable CPU (source ./init_cpuid.sh)"}
 
 # valores por defecto
 comp=gcc
-src="scale_shift.c"
+src="axpy.c"
 vlenk=1   # 1K elements
 # vlenk=64   # 64K elements
 vlen=$((vlenk*1024))
@@ -87,7 +87,7 @@ while getopts "f:c:l:p:nT:a:h" opt; do
       echo "uso:"
       echo "$0 -f fichero  -c compilador"
       echo "ejemplo:"
-      echo "$0 -c gcc -f scale_shift.c -l 1  -p 0"
+      echo "$0 -c gcc -f axpy.c -l 1  -p 0"
       exit
       ;;
     \?)

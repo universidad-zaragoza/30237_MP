@@ -3,14 +3,14 @@
 # uso:
 #    ./run.sh -c compilador -f fichero -l vector_len (Kelements) -p precision
 # ejemplo
-#    ./run.sh -c gcc  -f scale_shift.c -l 2  -p 0
+#    ./run.sh -c gcc  -f axpy.c -l 2  -p 0
 
 [ -z "$CPU" ] && echo "Hay que inicializar la variable CPU (source ./init_cpuname.sh)" && exit 1;
 [ ! -d "$CPU" ] && echo "No se ha compilado" && exit 1;
 
 # valores por defecto
 comp=gcc
-src="scale_shift.c"
+src="axpy.c"
 vlenk=1   # 1K elementos
 
 # floating point precision, 
