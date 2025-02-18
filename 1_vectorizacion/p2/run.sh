@@ -10,7 +10,7 @@
 
 # valores por defecto
 comp=gcc
-src="ss_align.c"
+src="axpy_align.c"
 vlenk=1   # 1K elementos
 loopalignstr=
 PERF=

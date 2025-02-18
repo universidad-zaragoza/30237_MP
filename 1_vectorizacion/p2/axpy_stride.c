@@ -41,10 +41,11 @@
 
 /* 2*LEN porque se acceden elementos no consecutivos */
 static real x[2*LEN] __attribute__((aligned(SIMD_ALIGN)));
-static real alpha = 0.9;
-static real beta = 0.5;
+static real y[2*LEN] __attribute__((aligned(SIMD_ALIGN)));
+static real z[2*LEN] __attribute__((aligned(SIMD_ALIGN)));
+static real alpha = 0.25;
 
-int dummy(real a[], real alpha, real beta);
+int dummy(real x[], real y[], real z[], real alpha);
 
 /* inhibimos el inlining de algunas funciones
  * para que el ensamblador sea más cómodo de leer */
@@ -90,7 +91,8 @@ int init()
 #endif
   for (unsigned int j = 0; j < LEN; j++)
   {
-    x[j] = 1.0;
+    x[j] = 2.0;
+    y[j] = 0.5;
   }
   return 0;
 }
@@ -108,7 +110,7 @@ void results(const double wall_time, const char *loop)
 #ifndef __INTEL_LLVM_COMPILER
   __attribute__((optimize("no-tree-vectorize")))
 #endif
-int ss_stride_esc()
+int axpy_stride_esc()
 {
   double start_t, end_t;
 
@@ -121,17 +123,17 @@ int ss_stride_esc()
 #endif
     for (unsigned int i = 0; i < 2*LEN; i+=2)
     {
-      x[i] = alpha*x[i] + beta;
+      y[i] = alpha*x[i] + y[i];
     }
-    dummy(x, alpha, beta);
+    dummy(x, y, z, alpha);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "ss_stride_esc");
-  check(x);
+  results(end_t - start_t, "axpy_stride_esc");
+  check(y);
   return 0;
 }
 
-int ss_stride_vec()
+int axpy_stride_vec()
 {
   double start_t, end_t;
 
@@ -141,20 +143,21 @@ int ss_stride_vec()
   {
     for (unsigned int i = 0; i < 2*LEN; i+=2)
     {
-        x[i] = alpha*x[i] + beta;
+        y[i] = alpha*x[i] + y[i];
     }
-    dummy(x, alpha, beta);
+    dummy(x, y, z, alpha);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "ss_stride_vec");
-  check(x);
+  results(end_t - start_t, "axpy_stride_vec");
+  check(y);
   return 0;
 }
 
 #if 0
-int ss_stride_v2(real * restrict vx)
+int axpy_stride_v2(real * restrict vx)
 {
-  real *xx = __builtin_assume_aligned(va, SIMD_ALIGN);
+  real *xx = __builtin_assume_aligned(vx, SIMD_ALIGN);
+  real *yy = __builtin_assume_aligned(vy, SIMD_ALIGN);
   double start_t, end_t;
 
   init();
@@ -164,13 +167,13 @@ int ss_stride_v2(real * restrict vx)
   {
     for (unsigned int i = 0; i < 2*LEN; i+=2)
     {
-      xx[i] = alpha*xx[i] + beta;
+      yy[i] = alpha*xx[i] + yy[i];
     }
-    dummy(x, alpha, beta);
+    dummy(xx, yy, z, alpha);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "ss_stride_v2");
-  check(xx);
+  results(end_t - start_t, "axpy_stride_v2");
+  check(yy);
   return 0;
 }
 #endif
@@ -179,9 +182,9 @@ int main()
 {
   printf("                     Time       TPE\n");
   printf("             Loop     ns       ps/el     Checksum\n");
-  ss_stride_esc();
-  ss_stride_vec();
-  //ss_stride_v2(x);
+  axpy_stride_esc();
+  axpy_stride_vec();
+  //axpy_stride_v2(x);
   return 0;
 }
 

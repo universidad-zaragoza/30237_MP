@@ -42,10 +42,11 @@
 
 /* LEN+1 porque hay recorridos que se inician en el elemento 1 */
 static real x[LEN+1] __attribute__((aligned(SIMD_ALIGN)));
-static real alpha = 0.9;
-static real beta = 0.5;
+static real y[LEN+1] __attribute__((aligned(SIMD_ALIGN)));
+static real z[LEN+1] __attribute__((aligned(SIMD_ALIGN)));
+static real alpha = 0.25;
 
-int dummy(real a[], real alpha, real beta);
+int dummy(real x[], real y[], real z[], real alpha);
 
 /* inhibimos el inlining de algunas funciones
  * para que el ensamblador sea más cómodo de leer */
@@ -91,7 +92,8 @@ int init()
 #endif
     for (unsigned int j = 0; j < LEN+1; j++)
     {
-	    x[j] = 1.0;
+	    x[j] = 2.0;
+	    y[j] = 0.5;
     }
     return 0;
 }
@@ -105,11 +107,11 @@ void results(const double wall_time, const char *loop)
             wall_time/(1e-12*NTIMES*LEN) /* ps/el */);
 }
 
-/* scale and shift functions */
+/* axpy functions */
 /* primer elemento alineado */
 __attribute__ ((noinline))
 int
-ss_align_v1()
+axpy_align_v1()
 {
   double start_t, end_t;
 
@@ -119,18 +121,18 @@ ss_align_v1()
   {
     for (unsigned int i = 0; i < LEN; i++)
     {
-        x[i] = alpha*x[i] + beta;
+        y[i] = alpha*x[i] + y[i];
     }
-    dummy(x, alpha, beta);
+    dummy(x, y, z, alpha);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "ss_align_v1");
-  check(x);
+  results(end_t - start_t, "axpy_align_v1");
+  check(y);
   return 0;
 }
 
 /* primeros elementos no alineados */
-int ss_align_v2()
+int axpy_align_v2()
 {
   double start_t, end_t;
 
@@ -140,19 +142,19 @@ int ss_align_v2()
   {
     for (unsigned int i = 0; i < LEN; i++)
     {
-        x[i+1] = alpha*x[i+1] + beta;
+        y[i+1] = alpha*x[i+1] + y[i+1];
     }
-    dummy(x, alpha, beta);
+    dummy(x, y, z, alpha);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "ss_align_v2");
-  check(x);
+  results(end_t - start_t, "axpy_align_v2");
+  check(y);
   return 0;
 }
 
 
 /* accesos a memoria alineados, intrinseco */
-int ss_align_v1_intr()
+int axpy_align_v1_intr()
 {
   double start_t, end_t;
 
@@ -160,45 +162,41 @@ int ss_align_v1_intr()
   start_t = get_wall_time();
 
 #if PRECISION==0
-  __m256 vX, valpha, vbeta;
-  for (unsigned int nl = 0; nl < NTIMES; nl++)
-  {
-    valpha = _mm256_set1_ps(alpha);      //vscalar = _mm256_load1_ps(&alpha);
-    vbeta = _mm256_set1_ps(beta);
-    for (unsigned int i = 0; i < LEN; i+= AVX_LEN)
-    {
+  __m256 vX, vY, valpha, vaX;
+  for (unsigned int nl = 0; nl < NTIMES; nl++) {
+    valpha = _mm256_set1_ps(alpha);      //valpha = _mm256_load1_ps(&alpha);
+    for (unsigned int i = 0; i < LEN; i+= AVX_LEN) {
       vX = _mm256_load_ps(&x[i]);
-      vX = _mm256_mul_ps(valpha, vX);
-      vX = _mm256_add_ps(vX, vbeta);
-      _mm256_store_ps(&x[i], vX);
+      vY = _mm256_load_ps(&y[i]);
+      vaX = _mm256_mul_ps(valpha, vX);
+      vY = _mm256_add_ps(vaX, vY);
+      _mm256_store_ps(&y[i],vY);
     }
-    dummy(x, alpha, beta);
+    dummy(x, y, z, alpha);
   }
 #else
-  __m256d vX, valpha, vbeta;
-  for (unsigned int nl = 0; nl < NTIMES; nl++)
-  {
-    valpha = _mm256_set1_pd(alpha);
-    vbeta = _mm256_set1_pd(beta);
-    for (unsigned int i = 0; i < LEN; i+= AVX_LEN)
-    {
+  __m256d vX, vY, valpha, vaX;
+  for (unsigned int nl = 0; nl < NTIMES; nl++) {
+    valpha = _mm256_set1_pd(alpha);      //valpha = _mm256_load1_pd(&alpha);
+    for (int i = 0; i < LEN; i+= AVX_LEN) {
       vX = _mm256_load_pd(&x[i]);
-      vX = _mm256_mul_pd(valpha, vX);
-      vX = _mm256_add_pd(vX, vbeta);
-      _mm256_store_pd(&x[i], vX);
+      vY = _mm256_load_pd(&y[i]);
+      vaX = _mm256_mul_pd(valpha, vX);
+      vY = _mm256_add_pd(vaX, vY);
+      _mm256_store_pd(&y[i],vY);
     }
-    dummy(x, alpha, beta);
+    dummy(x, y, z, alpha);
   }
 #endif
 
   end_t = get_wall_time();
-  results(end_t - start_t, "ss_align_v1_intr");
-  check(x);
+  results(end_t - start_t, "axpy_align_v1_intr");
+  check(y);
   return 0;
 }
 
 /* accesos a memoria no alineados, intrinseco */
-int ss_align_v2_intr()
+int axpy_align_v2_intr()
 {
   double start_t, end_t;
 
@@ -206,45 +204,41 @@ int ss_align_v2_intr()
   start_t = get_wall_time();
 
 #if PRECISION==0
-  __m256 vX, valpha, vbeta;
-  for (unsigned int nl = 0; nl < NTIMES; nl++)
-  {
-    valpha = _mm256_set1_ps(alpha);      //vscalar = _mm256_load1_ps(&alpha);
-    vbeta = _mm256_set1_ps(beta);
-    for (unsigned int i = 0; i < LEN; i+= AVX_LEN)
-    {
+  __m256 vX, vY, valpha, vaX;
+  for (unsigned int nl = 0; nl < NTIMES; nl++) {
+    valpha = _mm256_set1_ps(alpha);      //valpha = _mm256_load1_ps(&alpha);
+    for (unsigned int i = 0; i < LEN; i+= AVX_LEN) {
       vX = _mm256_loadu_ps(&x[i+1]);
-      vX = _mm256_mul_ps(valpha, vX);
-      vX = _mm256_add_ps(vbeta, vX);
-      _mm256_storeu_ps(&x[i+1], vX);
+      vY = _mm256_loadu_ps(&y[i+1]);
+      vaX = _mm256_mul_ps(valpha, vX);
+      vY = _mm256_add_ps(vaX, vY);
+      _mm256_storeu_ps(&y[i+1],vY);
     }
-    dummy(x, alpha, beta);
+    dummy(x, y, z, alpha);
   }
 #else
-  __m256d vX, valpha, vbeta;
-  for (unsigned int nl = 0; nl < NTIMES; nl++)
-  {
-    valpha = _mm256_set1_pd(alpha);      //vscalar = _mm256_load1_ps(&alpha);
-    vbeta = _mm256_set1_pd(beta);
-    for (unsigned int i = 0; i < LEN; i+= AVX_LEN)
-    {
+  __m256d vX, vY, valpha, vaX;
+  for (unsigned int nl = 0; nl < NTIMES; nl++) {
+    valpha = _mm256_set1_pd(alpha);      //valpha = _mm256_load1_pd(&alpha);
+    for (int i = 0; i < LEN; i+= AVX_LEN) {
       vX = _mm256_loadu_pd(&x[i+1]);
-      vX = _mm256_mul_pd(valpha, vX);
-      vX = _mm256_add_pd(vbeta, vX);
-      _mm256_storeu_pd(&x[i+1], vX);
+      vY = _mm256_loadu_pd(&y[i+1]);
+      vaX = _mm256_mul_pd(valpha, vX);
+      vY = _mm256_add_pd(vaX, vY);
+      _mm256_storeu_pd(&y[i+1],vY);
     }
-    dummy(x, alpha, beta);
+    dummy(x, y, z, alpha);
   }
 #endif
 
   end_t = get_wall_time();
-  results(end_t - start_t, "ss_align_v2_intr");
-  check(x);
+  results(end_t - start_t, "axpy_align_v2_intr");
+  check(y);
   return 0;
 }
 
 /* datos no alineados, intrinseco alineado */
-int ss_align_v1_intru()
+int axpy_align_v1_intru()
 {
   double start_t, end_t;
 
@@ -252,40 +246,35 @@ int ss_align_v1_intru()
   start_t = get_wall_time();
 
 #if PRECISION==0
-  __m256 vX, valpha, vbeta;
-  for (unsigned int nl = 0; nl < NTIMES; nl++)
-  {
-    valpha = _mm256_set1_ps(alpha);      //vscalar = _mm256_load1_ps(&scalar);
-    vbeta = _mm256_set1_ps(beta);
-    for (unsigned int i = 0; i < LEN; i+= AVX_LEN)
-    {
+  __m256 vX, vY, valpha, vaX;
+  for (unsigned int nl = 0; nl < NTIMES; nl++) {
+    valpha = _mm256_set1_ps(alpha);      //valpha = _mm256_load1_ps(&alpha);
+    for (unsigned int i = 0; i < LEN; i+= AVX_LEN) {
       vX = _mm256_load_ps(&x[i+1]);
-      vX = _mm256_mul_ps(valpha, vX);
-      vX = _mm256_add_ps(vbeta, vX);
-      _mm256_store_ps(&x[i+1], vX);
+      vY = _mm256_load_ps(&y[i+1]);
+      vaX = _mm256_mul_ps(valpha, vX);
+      vY = _mm256_add_ps(vaX, vY);
+      _mm256_store_ps(&y[i+1],vY);
     }
-    dummy(x, alpha, beta);
+    dummy(x, y, z, alpha);
   }
 #else
-  __m256d vX, valpha, vbeta;
-  for (unsigned int nl = 0; nl < NTIMES; nl++)
-  {
-    valpha = _mm256_set1_ps(alpha);      //vscalar = _mm256_load1_ps(&alpha);
-    vbeta = _mm256_set1_ps(beta);
-    for (unsigned int i = 0; i < LEN; i+= AVX_LEN)
-    {
+  __m256d vX, vY, valpha, vaX;
+  for (unsigned int nl = 0; nl < NTIMES; nl++) {
+    valpha = _mm256_set1_pd(alpha);      //valpha = _mm256_load1_pd(&alpha);
+    for (int i = 0; i < LEN; i+= AVX_LEN) {
       vX = _mm256_load_pd(&x[i+1]);
       vX = _mm256_mul_pd(valpha, vX);
       vX = _mm256_add_pd(vbeta, vX);
       _mm256_store_pd(&x[i+1], vX);
     }
-    dummy(x, alpha, beta);
+    dummy(x, y, z, alpha);
   }
 #endif
 
   end_t = get_wall_time();
-  results(end_t - start_t, "ss_align_v1_intru");
-  check(x);
+  results(end_t - start_t, "axpy_align_v1_intru");
+  check(y);
   return 0;
 }
 
@@ -300,11 +289,11 @@ int main()
   printf("                      Time      TPE\n");
   printf("         Loop          ns      ps/el      Checksum\n");
 
-  ss_align_v1();         /* x[] alineado */
-  ss_align_v2();         /* x[] no alineado */
-  ss_align_v1_intr();    /* v1 con intrinsecos */
-  ss_align_v2_intr();    /* v2 con intrínsecos */
-  //ss_align_v1_intru();     /* v1 con intrinsecos pero vectores no alineados */
+  axpy_align_v1();         /* x[] alineado */
+  axpy_align_v2();         /* x[] no alineado */
+  axpy_align_v1_intr();    /* v1 con intrinsecos */
+  axpy_align_v2_intr();    /* v2 con intrínsecos */
+  //axpy_align_v1_intru();     /* v1 con intrinsecos pero vectores no alineados */
 
   exit(0);
 }
