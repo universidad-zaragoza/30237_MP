@@ -1,13 +1,10 @@
-# Makefile para compilar los distintos fuentes de la práctica.
+# Makefile para compilar los distintos fuentes de la práctuca.
 # To compile the program, just type make in the sample directory.
 # 
 
-CC=gcc
-FLAGS=-std=gnu17 -g -O3 -ffast-math -march=native -Wall -Wextra -Wshadow -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-parameter
-# FLAGS=-std=c99
-REPORT_FLAGS=-fopt-info-vec-optimized
-# REPORT_FLAGS=-fopt-info-vec-all -fopt-info-loop-optimized
-# REPORT_FLAGS=-fopt-info-vec-optimized
+CC=icx
+FLAGS=-std=c11 -g -O3 -xHost -Wall    #FLAGS=-std=c99
+REPORT_FLAGS=-qopt-report=max
 
 #
 # The -ljpeg flag is used to tell the compiler to use the libjpeg library to compile and link
@@ -40,18 +37,20 @@ dummy.o: dummy.c
 
 rgb2gray.o: rgb2gray.c | $(REPDIR) $(ASMDIR)
 	$(CC)  $(FLAGS)  $(REPORT_FLAGS)  -c $<  -o $@ \
-      -Wa,-adghln=$(ASMDIR)/rgb2gray.$(CC).s \
 	  2>&1 | tee $(REPDIR)/rgb2gray.$(CC).report.txt
+	$(CC)  $(FLAGS)  $(REPORT_FLAGS)  -c $<  -o $@ \
+      -S -o $(ASMDIR)/rgb2gray.$(CC).s \
 
 misc.o: misc.c | $(REPDIR) $(ASMDIR)
 	$(CC)  $(FLAGS)  $(REPORT_FLAGS)  -c $<  -o $@ \
-      -Wa,-adghln=$(ASMDIR)/misc.$(CC).s \
 	  2>&1 | tee $(REPDIR)/misc.$(CC).report.txt
+	$(CC)  $(FLAGS)  $(REPORT_FLAGS)  -c $<  -o $@ \
+      -S -o $(ASMDIR)/misc.$(CC).s \
 
 # $^: names of all the prerequisites
 # http://www.gnu.org/software/make/manual/make.html#Automatic-Variables
-test_rgb2gray: rgb2gray.o misc.o jpeg_handler.o dummy.o test_rgb2gray.c 
-	$(CC) $(FLAGS)  $^  -ljpeg -o $@
+test_rgb2gray: rgb2gray.o misc.o jpeg_handler.o dummy.o test_rgb2gray.c
+	$(CC) $(FLAGS)  $^  -ljpeg -o $@.icc
 
 clean:
-	rm -rf *.o test_rgb2gray
+	rm -rf *.o test_rgb2gray.icc

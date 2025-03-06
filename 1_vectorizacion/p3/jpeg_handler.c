@@ -5,8 +5,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <jpeglib.h>
 #include "jpeg_handler.h"
-#include "include/jpeglib.h"
 
 /* Known color spaces (from jpeglib.h) */
 const char *color_space_str[8] = {

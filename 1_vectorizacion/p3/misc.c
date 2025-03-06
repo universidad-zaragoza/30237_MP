@@ -9,9 +9,9 @@
 #include <sys/time.h>
 #include <sys/times.h>
 #include <malloc.h>
+#include <jpeglib.h>
 
 #include "jpeg_handler.h"
-#include "include/jpeglib.h"
 #include "misc.h"
 
 //----------------------------------------------------------------------------
@@ -53,7 +53,7 @@ void results(double wall_time, int npixels, char *loop)
   // printf("                  Time\n");
   // printf("función            (s)    ns/pix  Gpixels/s\n");
 
-  printf("%18s  %5.1f    %4.1f       %4.2f \n",
+  printf("%18s  %5.1f     %4.2f       %4.2f \n",
           loop /* nombre del bucle */,
           (1e3)*wall_time/NITER,
           (1e9)*wall_time/(NITER*npixels)  /* ns/pixel */,
