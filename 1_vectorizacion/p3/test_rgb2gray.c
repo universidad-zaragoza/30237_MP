@@ -1,15 +1,16 @@
 /* Basado en código descargado en:
  * http://www.cim.mcgill.ca/~junaed/libjpeg.php */
 /* Adaptado: Jesús Alastruey Benedé
- * v2.0, 2-marzo-2021 */
+ * v2.1, 1-marzo-2022 */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
+#include <jpeglib.h>
+
 #include "jpeg_handler.h"
-#include "include/jpeglib.h"
-#include "sepia_filter.h"
+#include "rgb2gray.h"
 #include "misc.h"
 
 //----------------------------------------------------------------------------
@@ -47,8 +48,7 @@ static struct option_help {
   { "--output_filename", "-o",
     "output filename" },
   { "--conversion_type", "-c",
-    "0: sepiaf_roundf0, 1: sepiaf_roundf1, 2: sepiaf_cast0, 3: sepiaf_cast1, 4: sepiaf_cast2, 6: sepiaf_SOA0, 7: sepiaf_SOA1, 8: sepiaf_block [default = 0]" },
-//    "0: YCbCr2rgb, 1: YCbCr2gray, 2: rgb2gray, 3: rgb2YCbCr [default = 0]" },
+    "0: rgb2gray_roundf0, 1: rgb2gray_roundf1, 2: rgb2gray_cast0, 3: rgb2gray_cast1, 4: rgb2gray_cast2, 6: rgb2gray_SOA0, 7: rgb2gray_SOA1, 8: rgb2gray_block [default = 0]" },
   { "--reference", "-r",
     "write reference image [default = no]" },
   { "--fast", "-f",
@@ -89,7 +89,7 @@ remove_four(char *dst, const char *filename)
 }
 //----------------------------------------------------------------------------
 int
-check_conversion_color(char *base_filename, char *id_string,
+check_conversion_gray(char *base_filename, char *id_string,
                        image_t *image_out)
 {
     /* structs to store raw, uncompressed images and its properties (size, channels ...) */
@@ -102,33 +102,33 @@ check_conversion_color(char *base_filename, char *id_string,
 
     /* ********************************* */
     /* allocate memory to hold reference and diff images */
-    image_ref.pixels = (unsigned char*) malloc(3*image_out->width*image_out->height);
+    image_ref.pixels = (unsigned char*) malloc(image_out->width*image_out->height);
     image_ref.width  = image_out->width;
     image_ref.height = image_out->height;    
 
-    image_dif.pixels = (unsigned char*) malloc(3*image_out->width*image_out->height);
+    image_dif.pixels = (unsigned char*) malloc(image_out->width*image_out->height);
     image_dif.width  = image_out->width;
     image_dif.height = image_out->height;
 
     /* read reference image */
-    snprintf(ref_filename, sizeof(ref_filename), "%s_sepia_ref.ppm", base_filename);
-    read_PPM(ref_filename, &image_ref, 6);
+    snprintf(ref_filename, sizeof(ref_filename), "%s_gray_ref.ppm", base_filename);
+    read_PGM(ref_filename, &image_ref);
 
-    n = cmpColor(image_out, &image_ref, &image_dif);
+    n = cmpGray(image_out, &image_ref, &image_dif);
     if (n > 0)
     {
         if (verbose)
         {
-            /* write diff pixel values to ppm image */
-            snprintf(dif_filename, sizeof(dif_filename), "%s_%s_dif.ppm", base_filename, id_string);
-            write_PPM(dif_filename, &image_dif, 6);
+            /* write diff pixel values to pgm image */
+            snprintf(dif_filename, sizeof(dif_filename), "%s_%s_dif.pgm", base_filename, id_string);
+            write_PGM(dif_filename, &image_dif);
         }
 
         /* scale dif image to magnify errors */
         // scale_gray(image_dif, image_out);
         snprintf(dif_filename, sizeof(dif_filename), "%s_%s_dif.jpg", base_filename, id_string);
         // n = write_jpeg_file(dif_filename, image_out);
-        image_dif.color_space = JCS_RGB;
+        image_dif.color_space = JCS_GRAYSCALE;
         n = write_jpeg_file(dif_filename, &image_dif);
         if (n < 0) exit(-1);
     }
@@ -137,10 +137,10 @@ check_conversion_color(char *base_filename, char *id_string,
 //----------------------------------------------------------------------------
 
 static int
-test_convert_sepia()
+test_convert_gray()
 {
     /* structs to store raw, uncompressed images and its properties (size, channels ...) */
-    image_t image_RGB, image_sepia;
+    image_t image_RGB, image_gray;
     int n;
     char basename[STRLEN] = { 0 };
     char tmp_filename[STRLEN+16] = { 0 };
@@ -155,72 +155,72 @@ test_convert_sepia()
     /* remove the last four letters of in_filename */
     remove_four(basename, in_filename);
 
-    /* dump RGB pixel values to file */
+    /* dump pixel values to file */
     if (verbose)
     {
         snprintf(tmp_filename, sizeof(tmp_filename), "%s_RGB.ppm", basename);
-        write_PPM(tmp_filename, &image_RGB, 6);
+        write_PGM(tmp_filename, &image_RGB);
     }
 
     /* ********************************* */
-    /* RGB -> sepia */
+    /* RGB -> gray */
     /* allocate memory to hold the converted image */
-    image_sepia.pixels = (unsigned char*) malloc(3*image_RGB.width*image_RGB.height);
+    image_gray.pixels = (unsigned char*) malloc(image_RGB.width*image_RGB.height);
 
-    /* convert from RGB to sepia */
+    /* convert from RGB to gray */
     switch (conv_type)
     {
-        case 0: sepia_filter_roundf0(&image_RGB, &image_sepia);
+        case 0: rgb2gray_roundf0(&image_RGB, &image_gray);
                 break;
-        case 1: sepia_filter_roundf1(&image_RGB, &image_sepia);
+        case 1: rgb2gray_roundf1(&image_RGB, &image_gray);
                 break;
-        case 2: sepia_filter_cast0(&image_RGB, &image_sepia);
+        case 2: rgb2gray_cast0(&image_RGB, &image_gray);
                 break;
-        case 3: sepia_filter_cast1(&image_RGB, &image_sepia);
+        case 3: rgb2gray_cast1(&image_RGB, &image_gray);
                 break;
-        case 4: sepia_filter_cast2(&image_RGB, &image_sepia);
+        case 4: rgb2gray_cast2(&image_RGB, &image_gray);
                 break;
-        case 5: sepia_filter_cast_esc(&image_RGB, &image_sepia);
+        case 5: rgb2gray_cast_esc(&image_RGB, &image_gray);
                 break;
-        case 6: sepia_filter_SOA0(&image_RGB, &image_sepia);
+        case 6: rgb2gray_SOA0(&image_RGB, &image_gray);
                 break;
-        case 7: sepia_filter_SOA1(&image_RGB, &image_sepia);
+        case 7: rgb2gray_SOA1(&image_RGB, &image_gray);
                 break;
-        case 8: sepia_filter_block(&image_RGB, &image_sepia);
+        case 8: rgb2gray_block(&image_RGB, &image_gray);
                 break;
-        case 9: sepia_filter_roundf0(&image_RGB, &image_sepia);
-                sepia_filter_roundf1(&image_RGB, &image_sepia);
-                sepia_filter_cast0(&image_RGB, &image_sepia);
-                sepia_filter_cast1(&image_RGB, &image_sepia);
-                sepia_filter_cast2(&image_RGB, &image_sepia);
-                sepia_filter_cast_esc(&image_RGB, &image_sepia);
-                sepia_filter_SOA0(&image_RGB, &image_sepia);
-                sepia_filter_SOA1(&image_RGB, &image_sepia);
-                sepia_filter_block(&image_RGB, &image_sepia);
+        case 9: rgb2gray_roundf0(&image_RGB, &image_gray);
+                rgb2gray_roundf1(&image_RGB, &image_gray);
+                rgb2gray_cast0(&image_RGB, &image_gray);
+                rgb2gray_cast1(&image_RGB, &image_gray);
+                rgb2gray_cast2(&image_RGB, &image_gray);
+                rgb2gray_cast_esc(&image_RGB, &image_gray);
+                rgb2gray_SOA0(&image_RGB, &image_gray);
+                rgb2gray_SOA1(&image_RGB, &image_gray);
+                rgb2gray_block(&image_RGB, &image_gray);
                 break;
-        default: sepia_filter_roundf0(&image_RGB, &image_sepia);
+        default: rgb2gray_roundf0(&image_RGB, &image_gray);
     }
 
-    /* write sepia image to file */
-    snprintf(tmp_filename, sizeof(tmp_filename), "%s_sepia.jpg", basename);
-    n = write_jpeg_file(tmp_filename, &image_sepia);
+    /* write gray image to file */
+    snprintf(tmp_filename, sizeof(tmp_filename), "%s_gray.jpg", basename);
+    n = write_jpeg_file(tmp_filename, &image_gray);
     if (n < 0) exit(-1);
 
     if (reference)
     {
         /* reference image written in jpg and ppm formats */
-        snprintf(tmp_filename, sizeof(tmp_filename), "%s_sepia_ref.jpg", basename);
-        n = write_jpeg_file(tmp_filename, &image_sepia);
+        snprintf(tmp_filename, sizeof(tmp_filename), "%s_gray_ref.jpg", basename);
+        n = write_jpeg_file(tmp_filename, &image_gray);
 
         /* comparison of images in jpg format does not work */
-        snprintf(tmp_filename, sizeof(tmp_filename), "%s_sepia_ref.ppm", basename);
-        write_PPM(tmp_filename, &image_sepia, 6);
+        snprintf(tmp_filename, sizeof(tmp_filename), "%s_gray_ref.ppm", basename);
+        write_PGM(tmp_filename, &image_gray);
     }
     else
     {
         /* verify conversion */
-        if (conv_type != 9) check_conversion_color(basename, "sepia", &image_sepia);
-    }   
+        if (conv_type != 9) check_conversion_gray(basename, "gray", &image_gray);
+    }
     return 0;
 }
 //----------------------------------------------------------------------------
@@ -280,6 +280,6 @@ main(int argc, char *argv[])
         }
     }
 
-    test_convert_sepia();
+    test_convert_gray();
     exit(0);
 }
