@@ -46,7 +46,7 @@ void thread2() {
     ld=d;
     le=e;
 
-    //std::cout << "Thread 2! (después)la: " << la << ", lb: " << lb << ", lc: " << lc << ", ld: " <<ld << ", le: " << le << std::endl;
+    std::cout << "Thread 2! (después)la: " << la << ", lb: " << lb << ", lc: " << lc << ", ld: " <<ld << ", le: " << le << std::endl;
 }
 
 int main() {
@@ -66,8 +66,10 @@ int main() {
         t1.join();
         t2.join();
     
-        if (!((a==1)&&(b==2)&&(c==1)&&(d==4)&&(e==5)))
-            std::cout << "ERROR" << v[503] << std::endl;
+        if (!((a==1)&&(b==2)&&(c==1)&&(d==4)&&(e==5))){
+            std::cout << "Reordenamiento visible " << v[503] << std::endl;
+            break;
+        }
     } 
     
     return 0;
