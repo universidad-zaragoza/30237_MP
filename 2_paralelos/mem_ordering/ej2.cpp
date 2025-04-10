@@ -1,4 +1,5 @@
 //En este caso conseguimos que falle, como lo arreglariamos?
+//Mide el rendimiento en ambas versiones
 #include <atomic>
 #include <thread>
 #include <iostream>
