@@ -10,7 +10,7 @@
 
 # valores por defecto
 comp=gcc
-src="axpy.c"
+src="axpby.c"
 vlenk=1   # 1K elements
 # vlenk=64   # 64K elements
 vlen=$((vlenk*1024))

@@ -10,7 +10,7 @@
 
 # valores por defecto
 comp=gcc
-src="axpy.c"
+src="axpby.c"
 vlenk=1   # 1K elementos
 loopalignstr=
 PERF=
@@ -105,12 +105,13 @@ for j in "${!version_list[@]}"; do
     binario=${id}.${vlenk}k.${precision}.${version_list[$j]}$loopalignstr.${comp}
     echo -n "ejecutando ${PERF}${binario} ... "
     # ./${binario} > results/${binario}.out   2>&1 && echo OK
-    ${PERF} ./${binario} > results/${binario}.out   2>&1
+    ${PERF} ./${binario} > results/${binario}.out 2>&1
     if [ $? -eq 0 ]; then
         echo OK
     else
         echo ERROR
     fi
+    more results/${binario}.out
 done    
     
 exit
