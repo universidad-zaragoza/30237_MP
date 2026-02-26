@@ -10,10 +10,11 @@
 
 # valores por defecto
 comp=gcc
-src="axpy_align.c"
+src="axpby_align.c"
 vlenk=1   # 1K elementos
 loopalignstr=
 PERF=
+parametro=
 
 # floating point precision, 
 #    p=0 corresponds to single precision
@@ -23,7 +24,7 @@ p=0
 # native version
 native=0
 
-while getopts "f:c:l:p:na:sh" opt; do
+while getopts "f:c:l:p:na:sm:h" opt; do
   case $opt in
     f) 
       src=$OPTARG
@@ -43,17 +44,6 @@ while getopts "f:c:l:p:na:sh" opt; do
       # echo "especificada ejecución de versión nativa"
       native=1
       ;;
-    s) 
-      # echo "especificada ejecución bajo perf"
-      PERF="perf stat -d "
-      ;;
-    h)
-      echo "uso:"
-      echo "$0 -f fichero  -c compilador"
-      echo "ejemplo:"
-      echo "$0 -f s000  -c gcc"
-      exit
-      ;;
     a) 
       # code alignment
       # https://easyperf.net/blog/2018/01/18/Code_alignment_issues
@@ -66,6 +56,22 @@ while getopts "f:c:l:p:na:sh" opt; do
       loopalign=${OPTARG}
       loopalignstr=.${OPTARG}loopalign
       ;;
+    s) 
+      # echo "especificada ejecución bajo perf"
+      PERF="perf stat -d "
+      ;;
+    m) 
+      # echo "especificada máscara de ejecución -> $OPTARG"
+      parametro=$OPTARG
+      ;;
+    h)
+      echo "uso:"
+      echo "$0 -f fichero  -c compilador"
+      echo "ejemplo:"
+      echo "$0 -f s000  -c gcc"
+      exit
+      ;;
+
     \?)
       echo "opción inválida: -$OPTARG"
       ;;
@@ -109,13 +115,14 @@ for j in "${!version_list[@]}"; do
     fi
     echo -n "ejecutando ${PERF}${binario} ... "
     # ./${binario} > results/${binario}.out   2>&1 && echo OK
-    ${PERF} ./${binario} > results/${binario}.out   2>&1
+    ${PERF} ./${binario} $parametro > results/${binario}.out 2>&1
     if [ $? -eq 0 ]; then
         echo OK
     else
         echo ERROR
     fi
-done    
+    more results/${binario}.out
+done
 
 exit
 

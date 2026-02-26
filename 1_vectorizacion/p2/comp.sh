@@ -148,6 +148,7 @@ case $comp in
         NOVECTOR_FLAG="-fno-tree-vectorize"
         EXTRA_FLAGS=""
 
+        # if [ ${id} = "axpy_stride" ]; then
         if [ ${id} = "ss_stride" ]; then
            EXTRA_FLAGS="-mfma -ffast-math"
         fi

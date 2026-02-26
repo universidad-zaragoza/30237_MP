@@ -23,7 +23,7 @@
 #ifndef LEN 
     #define LEN     (unsigned int) 1024
 #endif
-#define FLOP_IT    (unsigned long int)  2     /* 2 FLOP per iteration */
+#define FLOP_IT    (unsigned long int)  3     /* 3 FLOP per iteration */
 
 // Numero total de FLOP
 // Si es múltiplo de LEN y FLOP_IT se facilitan las cuentas */
@@ -43,10 +43,10 @@
 /* LEN+1 porque hay recorridos que se inician en el elemento 1 */
 static real x[LEN+1] __attribute__((aligned(SIMD_ALIGN)));
 static real y[LEN+1] __attribute__((aligned(SIMD_ALIGN)));
-static real z[LEN+1] __attribute__((aligned(SIMD_ALIGN)));
-static real alpha = 0.25;
+static real alpha = 0.4;
+static real beta = 0.6;
 
-int dummy(real x[], real y[], real z[], real alpha);
+int dummy(real a[], real b[], real c[], real alpha, real beta);
 
 /* inhibimos el inlining de algunas funciones
  * para que el ensamblador sea más cómodo de leer */
@@ -101,17 +101,25 @@ int init()
 __attribute__ ((noinline))
 void results(const double wall_time, const char *loop)
 {
-    printf("%18s  %6.1f    %6.1f     ",
+    printf("%19s  %6.1f    %6.1f     ",
             loop /* loop name */,
             wall_time/(1e-9*NTIMES),     /* ns/loop */
             wall_time/(1e-12*NTIMES*LEN) /* ps/el */);
 }
 
-/* axpy functions */
-/* primer elemento alineado */
+/* v1: y[i  ] = alpha*x[i  ] + beta*y[i  ];
+ * v2: y[i+1] = alpha*x[i+1] + beta*y[i+1];
+ * v3: y[i  ] = alpha*x[i+1] + beta*y[i  ];
+ * v4: y[i+1] = alpha*x[i  ] + beta*y[i+1];
+ * v5: y[i  ] = alpha*x[i  ] + beta*y[i+1];
+ * v6: y[i  ] = alpha*x[i+1] + beta*y[i+1];
+ * El resto de combinaciones no son vectorizables */
+
+/* axpby functions */
+/* primeros elementos alineados para x[] e y[] */
 __attribute__ ((noinline))
 int
-axpy_align_v1()
+axpby_align_v1()
 {
   double start_t, end_t;
 
@@ -121,18 +129,18 @@ axpy_align_v1()
   {
     for (unsigned int i = 0; i < LEN; i++)
     {
-        y[i] = alpha*x[i] + y[i];
+      y[i] = alpha*x[i] + beta*y[i];
     }
-    dummy(x, y, z, alpha);
+        dummy(x, y, y, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_align_v1");
+  results(end_t - start_t, "axpby_align_v1");
   check(y);
   return 0;
 }
 
-/* primeros elementos no alineados */
-int axpy_align_v2()
+/* primeros elementos no alineados para x[] e y[] */
+int axpby_align_v2()
 {
   double start_t, end_t;
 
@@ -142,19 +150,19 @@ int axpy_align_v2()
   {
     for (unsigned int i = 0; i < LEN; i++)
     {
-        y[i+1] = alpha*x[i+1] + y[i+1];
+      y[i+1] = alpha*x[i+1] + beta*y[i+1];
     }
-    dummy(x, y, z, alpha);
+    dummy(x, y, y, alpha, beta);
   }
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_align_v2");
+  results(end_t - start_t, "axpby_align_v2");
   check(y);
   return 0;
 }
 
 
-/* accesos a memoria alineados, intrinseco */
-int axpy_align_v1_intr()
+/* accesos a memoria alineados para x[] e y[], intrinseco */
+int axpby_align_v1_intr()
 {
   double start_t, end_t;
 
@@ -162,41 +170,45 @@ int axpy_align_v1_intr()
   start_t = get_wall_time();
 
 #if PRECISION==0
-  __m256 vX, vY, valpha, vaX;
+  __m256 vX, vY, valpha, vbeta;
   for (unsigned int nl = 0; nl < NTIMES; nl++) {
     valpha = _mm256_set1_ps(alpha);      //valpha = _mm256_load1_ps(&alpha);
+    vbeta = _mm256_set1_ps(beta);       // vbeta = _mm256_load1_ps(&beta);
     for (unsigned int i = 0; i < LEN; i+= AVX_LEN) {
       vX = _mm256_load_ps(&x[i]);
       vY = _mm256_load_ps(&y[i]);
-      vaX = _mm256_mul_ps(valpha, vX);
-      vY = _mm256_add_ps(vaX, vY);
+      vX = _mm256_mul_ps(valpha, vX);
+      vY = _mm256_mul_ps(vbeta, vY);
+      vY = _mm256_add_ps(vX, vY);
       _mm256_store_ps(&y[i],vY);
     }
-    dummy(x, y, z, alpha);
+    dummy(x, y, y, alpha, beta);
   }
 #else
-  __m256d vX, vY, valpha, vaX;
+  __m256d vX, vY, valpha, vbeta;
   for (unsigned int nl = 0; nl < NTIMES; nl++) {
     valpha = _mm256_set1_pd(alpha);      //valpha = _mm256_load1_pd(&alpha);
+    vbeta = _mm256_set1_pd(beta);      // vbeta = _mm256_load1_pd(&beta);
     for (int i = 0; i < LEN; i+= AVX_LEN) {
       vX = _mm256_load_pd(&x[i]);
       vY = _mm256_load_pd(&y[i]);
-      vaX = _mm256_mul_pd(valpha, vX);
-      vY = _mm256_add_pd(vaX, vY);
+      vX = _mm256_mul_pd(valpha, vX);
+      vY = _mm256_mul_pd(vbeta, vY);
+      vY = _mm256_add_pd(vX, vY);
       _mm256_store_pd(&y[i],vY);
     }
-    dummy(x, y, z, alpha);
+    dummy(x, y, y, alpha, beta);
   }
 #endif
 
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_align_v1_intr");
+  results(end_t - start_t, "axpby_align_v1_intr");
   check(y);
   return 0;
 }
 
-/* accesos a memoria no alineados, intrinseco */
-int axpy_align_v2_intr()
+/* accesos a memoria no alineados para x[] e y[], intrinseco */
+int axpby_align_v2_intr()
 {
   double start_t, end_t;
 
@@ -204,41 +216,45 @@ int axpy_align_v2_intr()
   start_t = get_wall_time();
 
 #if PRECISION==0
-  __m256 vX, vY, valpha, vaX;
+  __m256 vX, vY, valpha, vbeta;
   for (unsigned int nl = 0; nl < NTIMES; nl++) {
     valpha = _mm256_set1_ps(alpha);      //valpha = _mm256_load1_ps(&alpha);
+    vbeta = _mm256_set1_ps(beta);       // vbeta = _mm256_load1_ps(&beta);
     for (unsigned int i = 0; i < LEN; i+= AVX_LEN) {
       vX = _mm256_loadu_ps(&x[i+1]);
       vY = _mm256_loadu_ps(&y[i+1]);
-      vaX = _mm256_mul_ps(valpha, vX);
-      vY = _mm256_add_ps(vaX, vY);
+      vX = _mm256_mul_ps(valpha, vX);
+      vY = _mm256_mul_ps(vbeta, vY);
+      vY = _mm256_add_ps(vX, vY);
       _mm256_storeu_ps(&y[i+1],vY);
     }
-    dummy(x, y, z, alpha);
+    dummy(x, y, y, alpha, beta);
   }
 #else
-  __m256d vX, vY, valpha, vaX;
+  __m256d vX, vY, valpha, vbeta;
   for (unsigned int nl = 0; nl < NTIMES; nl++) {
     valpha = _mm256_set1_pd(alpha);      //valpha = _mm256_load1_pd(&alpha);
+    vbeta = _mm256_set1_pd(beta);       // vbeta = _mm256_load1_pd(&beta);
     for (int i = 0; i < LEN; i+= AVX_LEN) {
       vX = _mm256_loadu_pd(&x[i+1]);
       vY = _mm256_loadu_pd(&y[i+1]);
-      vaX = _mm256_mul_pd(valpha, vX);
-      vY = _mm256_add_pd(vaX, vY);
+      vX = _mm256_mul_pd(valpha, vX);
+      vY = _mm256_mul_pd(vbeta, vY);
+      vY = _mm256_add_pd(vX, vY);
       _mm256_storeu_pd(&y[i+1],vY);
     }
-    dummy(x, y, z, alpha);
+    dummy(x, y, y, alpha, beta);
   }
 #endif
 
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_align_v2_intr");
+  results(end_t - start_t, "axpby_align_v2_intr");
   check(y);
   return 0;
 }
 
 /* datos no alineados, intrinseco alineado */
-int axpy_align_v1_intru()
+int axpby_align_v1_intru()
 {
   double start_t, end_t;
 
@@ -246,54 +262,161 @@ int axpy_align_v1_intru()
   start_t = get_wall_time();
 
 #if PRECISION==0
-  __m256 vX, vY, valpha, vaX;
+  __m256 vX, vY, valpha, vbeta;
   for (unsigned int nl = 0; nl < NTIMES; nl++) {
     valpha = _mm256_set1_ps(alpha);      //valpha = _mm256_load1_ps(&alpha);
+    vbeta = _mm256_set1_ps(beta);      // vbeta = _mm256_load1_ps(&beta);
     for (unsigned int i = 0; i < LEN; i+= AVX_LEN) {
       vX = _mm256_load_ps(&x[i+1]);
       vY = _mm256_load_ps(&y[i+1]);
-      vaX = _mm256_mul_ps(valpha, vX);
-      vY = _mm256_add_ps(vaX, vY);
+      vX = _mm256_mul_ps(valpha, vX);
+      vY = _mm256_mul_ps(vbeta, vX);
+      vY = _mm256_add_ps(vX, vY);
       _mm256_store_ps(&y[i+1],vY);
     }
-    dummy(x, y, z, alpha);
+    dummy(x, y, y ,alpha, beta);
   }
 #else
-  __m256d vX, vY, valpha, vaX;
+  __m256d vX, vY, valpha, vbeta;
   for (unsigned int nl = 0; nl < NTIMES; nl++) {
     valpha = _mm256_set1_pd(alpha);      //valpha = _mm256_load1_pd(&alpha);
-    for (int i = 0; i < LEN; i+= AVX_LEN) {
+    vbeta = _mm256_set1_pd(beta);      //vbeta = _mm256_load1_pd(&beta);
+    for (unsigned int i = 0; i < LEN; i+= AVX_LEN) {
       vX = _mm256_load_pd(&x[i+1]);
+      vY = _mm256_load_pd(&y[i+1]);
       vX = _mm256_mul_pd(valpha, vX);
-      vX = _mm256_add_pd(vbeta, vX);
-      _mm256_store_pd(&x[i+1], vX);
+      vY = _mm256_mul_pd(vbeta, vX);
+      vY = _mm256_add_pd(vX, vY);
+      _mm256_store_pd(&y[i+1], vY);
     }
-    dummy(x, y, z, alpha);
+    dummy(x, y, y, alpha, beta);
   }
 #endif
 
   end_t = get_wall_time();
-  results(end_t - start_t, "axpy_align_v1_intru");
+  results(end_t - start_t, "axpby_align_v1_intru");
   check(y);
   return 0;
 }
 
-int main()
+/* primeros elementos no alineados de x[] */
+int axpby_align_v3()
 {
+  double start_t, end_t;
+
+  init();
+  start_t = get_wall_time();
+  for (unsigned int nl = 0; nl < NTIMES; nl++)
+  {
+    for (unsigned int i = 0; i < LEN; i++)
+    {
+        y[i] = alpha*x[i+1] + beta*y[i];
+    }
+    dummy(x, y, y, alpha, beta);
+  }
+  end_t = get_wall_time();
+  results(end_t - start_t, "axpy_align_v3");
+  check(y);
+  return 0;
+}
+
+/* primeros elementos no alineados de y[] */
+int axpby_align_v4()
+{
+  double start_t, end_t;
+
+  init();
+  start_t = get_wall_time();
+  for (unsigned int nl = 0; nl < NTIMES; nl++)
+  {
+    for (unsigned int i = 0; i < LEN; i++)
+    {
+        y[i+1] = alpha*x[i] + beta*y[i+1];
+    }
+    dummy(x, y, y, alpha, beta);
+  }
+  end_t = get_wall_time();
+  results(end_t - start_t, "axpy_align_v4");
+  check(y);
+  return 0;
+}
+
+/* primeros elementos no alineados del load y[] */
+int axpby_align_v5()
+{
+  double start_t, end_t;
+
+  init();
+  start_t = get_wall_time();
+  for (unsigned int nl = 0; nl < NTIMES; nl++)
+  {
+    for (unsigned int i = 0; i < LEN; i++)
+    {
+        y[i] = alpha*x[i] + beta*y[i+1];
+    }
+    dummy(x, y, y, alpha, beta);
+  }
+  end_t = get_wall_time();
+  results(end_t - start_t, "axpy_align_v5");
+  check(y);
+  return 0;
+}
+
+/* primeros elementos no alineados de los loads */
+int axpby_align_v6()
+{
+  double start_t, end_t;
+
+  init();
+  start_t = get_wall_time();
+  for (unsigned int nl = 0; nl < NTIMES; nl++)
+  {
+    for (unsigned int i = 0; i < LEN; i++)
+    {
+        y[i] = alpha*x[i+1] + beta*y[i+1];
+    }
+    dummy(x, y, y, alpha, beta);
+  }
+  end_t = get_wall_time();
+  results(end_t - start_t, "axpy_align_v6");
+  check(y);
+  return 0;
+}
+
+
+int main(int argc, char *argv[])
+{
+  int mask = 0b110000;
+  
+  if (argc == 2) {
+    // conversión de parámetro de binario a entero (base 2)
+    mask = strtol(argv[1], NULL, 2);
+  }
+
   // printf("NTIMES: %u\n", NTIMES);
   // printf("Direcciones de los vectores\n");
   // printf("  @x[0]: %p\n", &x);
   // printf("  @x[8]: %p\n", &x[8]);
   // printf("\n");
 
-  printf("                      Time      TPE\n");
-  printf("         Loop          ns      ps/el      Checksum\n");
+  printf("                       Time      TPE\n");
+  printf("          Loop          ns      ps/el      Checksum\n");
 
-  axpy_align_v1();         /* x[] alineado */
-  axpy_align_v2();         /* x[] no alineado */
-  axpy_align_v1_intr();    /* v1 con intrinsecos */
-  axpy_align_v2_intr();    /* v2 con intrínsecos */
-  //axpy_align_v1_intru();     /* v1 con intrinsecos pero vectores no alineados */
+  if (mask & 0b100000)
+  {
+	  axpby_align_v1();         /* todo alineado */
+	  axpby_align_v1_intr();    /* v1 con intrinsecos */
+	  // axpy_align_v1_intru();   /* v1 con intrinsecos pero vectores no alineados */
+  }
+  if (mask & 0b010000)
+  {
+	  axpby_align_v2();         /* todo no alineado */
+	  axpby_align_v2_intr();    /* v2 con intrínsecos */
+  }
+  if (mask & 0b001000) axpby_align_v3();  /* x[] no alineado */
+  if (mask & 0b000100) axpby_align_v4();  /* y[] no alineado */
+  if (mask & 0b000010) axpby_align_v5();  /* load y[] no alineado */
+  if (mask & 0b000001) axpby_align_v6();  /* loads no alineados */
 
   exit(0);
 }
