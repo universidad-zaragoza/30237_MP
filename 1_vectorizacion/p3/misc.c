@@ -53,7 +53,7 @@ void results(double wall_time, int npixels, char *loop)
   // printf("                  Time\n");
   // printf("función            (s)    ns/pix  Gpixels/s\n");
 
-  printf("%18s  %5.1f     %4.2f       %4.2f \n",
+  printf("%18s  %5.1f     %4.2f      %5.2f \n",
           loop /* nombre del bucle */,
           (1e3)*wall_time/NITER,
           (1e9)*wall_time/(NITER*npixels)  /* ns/pixel */,
@@ -71,8 +71,7 @@ cmpColor(image_t * image_in1, image_t * image_in2, image_t * image_out)
     unsigned char * pixels_in1 = image_in1->pixels;
     unsigned char * pixels_in2 = image_in2->pixels;
     unsigned char * pixels_out = image_out->pixels;
-    int max_idx, diff;
-    char max_diff; /* can be negative */
+    int max_idx, diff, max_diff;
 
     if (image_in1->bytes_per_pixel != 3)
     {
@@ -107,7 +106,7 @@ cmpColor(image_t * image_in1, image_t * image_in2, image_t * image_out)
         dummy(image_in1, image_out);
     }
     end_t = get_wall_time(); wall_dif = end_t - start_t;
-    printf("%18s  %5.1f    %4.1f       %4.2f     %4.1f%%   %4hhd    (%7d)  %s\n",
+    printf("%18s  %5.1f     %4.2f       %4.2f   %5.1f%%  %4hhd     (%7d)  %s\n",
            "cmpColor",
            wall_dif, wall_dif*1e9/(NITER/10*height*width),
            (NITER/10*height*width)/(1e9*wall_dif), (double) 100.0*diff/(3*height*width),
@@ -236,7 +235,7 @@ write_PPM(char *filename, image_t * image, int format)
 
     start_t = get_wall_time();
 
-    FILE *outfile = fopen(filename, "w");
+    FILE *outfile = fopen(filename, "wb");
     if (!outfile)
     {
         printf("ERROR: no se ha indicado fichero de salida\n");
@@ -330,7 +329,7 @@ read_PPM(char *filename, image_t * image, int format)
 
     start_t = get_wall_time();
 
-    FILE *infile = fopen(filename, "r");
+    FILE *infile = fopen(filename, "rb");
     if (!infile)
     {
         printf("ERROR: no se ha encontrado el fichero %s\n", filename);
