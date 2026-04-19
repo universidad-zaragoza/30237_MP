@@ -37,7 +37,8 @@
 #define N 1000
 #define P 1000
 
-#define GRAIN   32768 /* product size below which matmultleaf is used */  
+/* Para que siverve? */
+#define GRAIN   32768  
 
 void seqMatMult(int m, int n, int p, float **A, float **B, float **C)   
 {   
