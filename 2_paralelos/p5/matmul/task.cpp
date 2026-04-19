@@ -14,7 +14,7 @@ void trabajo(int id) {
 int main() {
     #pragma omp parallel
     {
-        #pragma omp single   // solo un thread crea las tareas
+        #pragma omp single   // ???
         {
         std::cout << "Creando tareas...\n";
 
@@ -27,7 +27,6 @@ int main() {
         #pragma omp task
         trabajo(3);
 
-        // Esperar a que todas las tareas terminen
         #pragma omp taskwait
 
         std::cout << "Todas las tareas han finalizado\n";
