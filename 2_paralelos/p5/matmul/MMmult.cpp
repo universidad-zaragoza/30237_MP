@@ -100,8 +100,8 @@ void seqmatmultrec(int m, int n, int p, int mf, int ml, int nf, int nl, int pf, 
 		seqmatmultrec(m, n, p, mf+(ml-mf)/2, ml, nf, nf+(nl-nf)/2, pf+(pl-pf)/2, pl, A, B, C);   
 		seqmatmultrec(m, n, p, mf+(ml-mf)/2, ml, nf+(nl-nf)/2, nl, pf, pf+(pl-pf)/2, A, B, C);   
 		
-		
-	}}
+	}
+}
 
 
 
@@ -137,14 +137,9 @@ else {  // is there a better grouping of tasks?
 	seqmatmultrec(m, n, p, mf+(ml-mf)/2, ml, nf, nf+(nl-nf)/2, pf+(pl-pf)/2, pl, A, B, C);   
 	seqmatmultrec(m, n, p, mf+(ml-mf)/2, ml, nf+(nl-nf)/2, nl, pf, pf+(pl-pf)/2, A, B, C);   
 	
-
-
-
    }   
 }
 
-
-              
 
 
 int CheckResults(int m, int n, float **C, float **C1)
