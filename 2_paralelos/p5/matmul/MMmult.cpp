@@ -33,9 +33,9 @@
 #define MIN(X, Y) ((X) < (Y) ? (X) : (Y)) 
 
 // define sizes of matrices to be used
-#define M 1000
-#define N 1000
-#define P 1000
+#define M 2000
+#define N 2000
+#define P 2000
 
 /* Para que siverve? */
 #define GRAIN   32768  
@@ -87,8 +87,9 @@ void seqmatmultrec(int m, int n, int p, int mf, int ml, int nf, int nl, int pf, 
 // pf, pl; /* first and last+1 k index */  
 
 
-{     
-	if ((ml-mf)*(nl-nf)*(pl-pf) < GRAIN)   
+{    
+    long long int tmp = ((long long int)(ml-mf)*(nl-nf)*(pl-pf));
+	if (tmp < GRAIN)   
 		matmultleaf(m, n, p, mf, ml, nf, nl, pf, pl, A, B, C);   
 	else {  // is there a better grouping of tasks?
 		
