@@ -3,7 +3,7 @@
 __global__ void vecAdd(float *a, float *b, float *c, int n) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
-    // PREGUNTA!!!: ¿por qué motivo es necesario esta clausula if?
+    // PREGUNTA!!!: ¿por qué motivo es necesario esta clausula i ¿problemas de quitarlaf?
     if (i < n)
         c[i] = a[i] + b[i];
 }
